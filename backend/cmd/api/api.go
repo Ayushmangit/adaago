@@ -108,6 +108,44 @@ func (app *application) mount() http.Handler {
 
 			r.Get("/me", app.getCurrentUserHandler)
 
+			r.Route("/students", func(r chi.Router) {
+				// Authenticated student profile routes.
+				r.Group(func(r chi.Router) {
+					r.Use(app.RequireRole(store.RoleStudent))
+
+					r.Post(
+						"/profile",
+						app.createStudentProfileHandler,
+					)
+					r.Get(
+						"/profile",
+						app.getStudentProfileHandler,
+					)
+					r.Patch(
+						"/profile",
+						app.updateStudentProfileHandler,
+					)
+				})
+
+				// Admin-only student management routes.
+				r.Group(func(r chi.Router) {
+					r.Use(app.RequireRole(store.RoleAdmin))
+
+					r.Get(
+						"/",
+						app.getStudentsHandler,
+					)
+					r.Get(
+						"/{studentID}",
+						app.getStudentHandler,
+					)
+					r.Patch(
+						"/{studentID}",
+						app.updateStudentHandler,
+					)
+				})
+			})
+
 			r.Route("/programs", func(r chi.Router) {
 				// Admin and student
 				r.Get("/", app.getProgramsHandler)

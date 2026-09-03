@@ -53,11 +53,45 @@ type Services struct {
 			input UpdateBatchInput,
 		) (*store.Batch, error)
 	}
+	Students interface {
+		CreateProfile(
+			ctx context.Context,
+			user *store.User,
+			input CreateStudentProfileInput,
+		) (*store.Student, error)
+
+		GetProfile(
+			ctx context.Context,
+			userID int64,
+		) (*store.StudentWithUser, error)
+
+		UpdateProfile(
+			ctx context.Context,
+			userID int64,
+			input UpdateStudentProfileInput,
+		) (*store.StudentWithUser, error)
+
+		GetAll(
+			ctx context.Context,
+		) ([]store.StudentWithUser, error)
+
+		GetByID(
+			ctx context.Context,
+			studentID int64,
+		) (*store.StudentWithUser, error)
+
+		UpdateByID(
+			ctx context.Context,
+			studentID int64,
+			input AdminUpdateStudentInput,
+		) (*store.StudentWithUser, error)
+	}
 }
 
 func NewServices(storage store.Storage) Services {
 	return Services{
 		Programs: &ProgramService{storage},
 		Batches:  &BatchService{storage},
+		Students: &StudentService{storage},
 	}
 }
