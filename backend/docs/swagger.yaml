@@ -1,0 +1,215 @@
+basePath: /v1
+definitions:
+  cmd_api.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  cmd_api.HealthResponse:
+    properties:
+      env:
+        type: string
+      status:
+        type: string
+      version:
+        type: string
+    type: object
+  cmd_api.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      user:
+        $ref: '#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.User'
+    type: object
+  cmd_api.LoginUserPayload:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  cmd_api.MeResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      role:
+        $ref: '#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.RoleType'
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  cmd_api.RegisterResponse:
+    properties:
+      user:
+        $ref: '#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.User'
+    type: object
+  cmd_api.RegisterUserPayload:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 8
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  github_com_Ayushmangit_adaago_git_backend_internal_store.RoleType:
+    enum:
+    - admin
+    - student
+    type: string
+    x-enum-varnames:
+    - RoleAdmin
+    - RoleStudent
+  github_com_Ayushmangit_adaago_git_backend_internal_store.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      role:
+        $ref: '#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.RoleType'
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API for adaa ,ERP for adaa
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: adaa Api
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login a user and return an access token
+      parameters:
+      - description: Login payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/cmd_api.LoginUserPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User logged in successfully
+          schema:
+            $ref: '#/definitions/cmd_api.LoginResponse'
+        "400":
+          description: Invalid request or validation error
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+        "401":
+          description: Invalid email or password
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+      summary: Login a registered user
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account and return an account verification token.
+      parameters:
+      - description: Registration payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/cmd_api.RegisterUserPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User registered successfully
+          schema:
+            $ref: '#/definitions/cmd_api.RegisterResponse'
+        "400":
+          description: Invalid request or validation error
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+        "409":
+          description: User already exists
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+      summary: Register a new user
+      tags:
+      - auth
+  /health:
+    get:
+      description: Returns the API's current status, environment, and version
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/cmd_api.HealthResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+      summary: Health check
+      tags:
+      - health
+  /me:
+    get:
+      description: Returns the currently authenticated user's account information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/cmd_api.MeResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get current user
+      tags:
+      - users
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

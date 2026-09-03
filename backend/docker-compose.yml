@@ -1,0 +1,56 @@
+services:
+  db:
+    image: postgres:16.3
+    container_name: postgres-db-adaa
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: adaa
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: adminpassword
+
+    ports:
+      - "5435:5432"
+
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d adaa"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:6.2-alpine
+    container_name: redis-adaa
+    restart: unless-stopped
+
+    ports:
+      - "6382:6379"
+
+    command: redis-server --save 60 1 --loglevel warning
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander-adaa
+    restart: unless-stopped
+
+    environment:
+      REDIS_HOSTS: local:redis:6379
+
+    ports:
+      - "8084:8081"
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  db-data:
