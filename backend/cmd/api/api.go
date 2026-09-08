@@ -177,6 +177,16 @@ func (app *application) mount() http.Handler {
 						"/{studentID}",
 						app.updateStudentHandler,
 					)
+
+					/*
+						Admin can view a student's
+						enrollment history.
+					*/
+
+					r.Get(
+						"/{studentID}/enrollments",
+						app.getStudentEnrollmentsHandler,
+					)
 				})
 			})
 
@@ -265,6 +275,45 @@ func (app *application) mount() http.Handler {
 					r.Patch(
 						"/{batchID}",
 						app.updateBatchHandler,
+					)
+
+					/*
+						Admin can view the roster /
+						enrollments for a batch.
+					*/
+
+					r.Get(
+						"/{batchID}/enrollments",
+						app.getBatchEnrollmentsHandler,
+					)
+				})
+			})
+
+			/*
+				Enrollment routes
+			*/
+
+			r.Route("/enrollments", func(r chi.Router) {
+				/*
+					Enrollment management is currently
+					admin-only.
+				*/
+
+				r.Group(func(r chi.Router) {
+					r.Use(
+						app.RequireRole(
+							store.RoleAdmin,
+						),
+					)
+
+					r.Post(
+						"/",
+						app.createEnrollmentHandler,
+					)
+
+					r.Get(
+						"/{enrollmentID}",
+						app.getEnrollmentHandler,
 					)
 				})
 			})
