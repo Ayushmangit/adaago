@@ -44,4 +44,4 @@ CREATE INDEX IF NOT EXISTS idx_batches_is_active
     ON batches(is_active);
 
 -- +goose Down
-DROP TABLE IF EXISTS batches;ELECT 'down SQL query';
+DROP TABLE IF EXISTS batches;

@@ -26,7 +26,7 @@ const docTemplate = `{
     "paths": {
         "/auth/login": {
             "post": {
-                "description": "Login a user and return an access token",
+                "description": "Login and return an access token and profile status",
                 "consumes": [
                     "application/json"
                 ],
@@ -36,7 +36,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Login a registered user",
+                "summary": "Login user",
                 "parameters": [
                     {
                         "description": "Login payload",
@@ -50,19 +50,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "User logged in successfully",
+                        "description": "Login successful",
                         "schema": {
                             "$ref": "#/definitions/cmd_api.LoginResponse"
                         }
                     },
                     "400": {
-                        "description": "Invalid request or validation error",
+                        "description": "Invalid request",
                         "schema": {
                             "$ref": "#/definitions/cmd_api.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Invalid email or password",
+                        "description": "Invalid credentials",
                         "schema": {
                             "$ref": "#/definitions/cmd_api.ErrorResponse"
                         }
@@ -76,9 +76,49 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/register": {
+        "/batches": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns all batches",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "batches"
+                ],
+                "summary": "List batches",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.BatchesResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "post": {
-                "description": "Create a new user account and return an account verification token.",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Create a batch under an active program. Admin access is required.",
                 "consumes": [
                     "application/json"
                 ],
@@ -86,41 +126,197 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "batches"
                 ],
-                "summary": "Register a new user",
+                "summary": "Create batch",
                 "parameters": [
                     {
-                        "description": "Registration payload",
+                        "description": "Batch details",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/cmd_api.RegisterUserPayload"
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_service.CreateBatchInput"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "User registered successfully",
+                        "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/cmd_api.RegisterResponse"
+                            "$ref": "#/definitions/cmd_api.BatchResponse"
                         }
                     },
                     "400": {
-                        "description": "Invalid request or validation error",
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/cmd_api.ErrorResponse"
                         }
                     },
                     "409": {
-                        "description": "User already exists",
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/cmd_api.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal server error",
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/batches/{batchID}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns a batch by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "batches"
+                ],
+                "summary": "Get batch",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Batch ID",
+                        "name": "batchID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.BatchResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Update or deactivate a batch. Admin access is required.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "batches"
+                ],
+                "summary": "Update batch",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Batch ID",
+                        "name": "batchID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Batch update",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_service.UpdateBatchInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.BatchResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/cmd_api.ErrorResponse"
                         }
@@ -190,9 +386,625 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/programs": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns all sports programs",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "programs"
+                ],
+                "summary": "List programs",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ProgramsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Create a new sports program",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "programs"
+                ],
+                "summary": "Create program",
+                "parameters": [
+                    {
+                        "description": "Program details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_service.CreateProgramInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ProgramResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/programs/{programID}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns a sports program by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "programs"
+                ],
+                "summary": "Get program",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Program ID",
+                        "name": "programID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ProgramResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Update or deactivate a sports program. Admin access is required.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "programs"
+                ],
+                "summary": "Update program",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Program ID",
+                        "name": "programID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Program update",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_service.UpdateProgramInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ProgramResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/programs/{programID}/batches": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns all batches belonging to a program",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "batches"
+                ],
+                "summary": "List program batches",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Program ID",
+                        "name": "programID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.BatchesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/students": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Return all student profiles. Admin access is required.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "students"
+                ],
+                "summary": "List students",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.StudentsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Create a student account and profile. Admin access is required.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "students"
+                ],
+                "summary": "Create student",
+                "parameters": [
+                    {
+                        "description": "Student information",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_service.CreateStudentInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.StudentWithUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/students/profile": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Return the authenticated student's profile",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "students"
+                ],
+                "summary": "Get student profile",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.StudentWithUserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/students/{studentID}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Return a student by ID. Admin access is required.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "students"
+                ],
+                "summary": "Get student",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Student ID",
+                        "name": "studentID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.StudentWithUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Update a student by ID. Admin access is required.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "students"
+                ],
+                "summary": "Update student",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Student ID",
+                        "name": "studentID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Student update",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_service.AdminUpdateStudentInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.StudentWithUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "cmd_api.BatchResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.Batch"
+                }
+            }
+        },
+        "cmd_api.BatchesResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.Batch"
+                    }
+                }
+            }
+        },
         "cmd_api.ErrorResponse": {
             "type": "object",
             "properties": {
@@ -228,12 +1040,18 @@ const docTemplate = `{
         },
         "cmd_api.LoginUserPayload": {
             "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
             "properties": {
                 "email": {
                     "type": "string"
                 },
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 8
                 }
             }
         },
@@ -260,33 +1078,298 @@ const docTemplate = `{
                 }
             }
         },
-        "cmd_api.RegisterResponse": {
+        "cmd_api.ProgramResponse": {
             "type": "object",
             "properties": {
-                "user": {
-                    "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.User"
+                "program": {
+                    "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.Program"
                 }
             }
         },
-        "cmd_api.RegisterUserPayload": {
+        "cmd_api.ProgramsResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.Program"
+                    }
+                }
+            }
+        },
+        "cmd_api.StudentWithUserResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.StudentWithUser"
+                }
+            }
+        },
+        "cmd_api.StudentsResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.StudentWithUser"
+                    }
+                }
+            }
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_service.AdminUpdateStudentInput": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "date_of_birth": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
+                },
+                "guardian_name": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "guardian_phone": {
+                    "type": "string",
+                    "maxLength": 20
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 20
+                },
+                "status": {
+                    "enum": [
+                        "active",
+                        "inactive"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.StudentStatus"
+                        }
+                    ]
+                }
+            }
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_service.CreateBatchInput": {
+            "type": "object",
+            "required": [
+                "end_time",
+                "monthly_fee_paise",
+                "name",
+                "program_id",
+                "start_time",
+                "weekdays"
+            ],
+            "properties": {
+                "capacity": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "monthly_fee_paise": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
+                },
+                "program_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "start_time": {
+                    "type": "string"
+                },
+                "weekdays": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_service.CreateProgramInput": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "maxLength": 1000
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
+                }
+            }
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_service.CreateStudentInput": {
             "type": "object",
             "required": [
                 "email",
-                "password",
+                "full_name",
                 "username"
             ],
             "properties": {
+                "address": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "date_of_birth": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },
-                "password": {
+                "full_name": {
                     "type": "string",
-                    "minLength": 8
+                    "maxLength": 100,
+                    "minLength": 2
+                },
+                "guardian_name": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "guardian_phone": {
+                    "type": "string",
+                    "maxLength": 20
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 20
                 },
                 "username": {
                     "type": "string",
                     "maxLength": 50,
                     "minLength": 3
+                }
+            }
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_service.UpdateBatchInput": {
+            "type": "object",
+            "properties": {
+                "capacity": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "monthly_fee_paise": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
+                },
+                "start_time": {
+                    "type": "string"
+                },
+                "weekdays": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_service.UpdateProgramInput": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "maxLength": 1000
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
+                }
+            }
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_store.Batch": {
+            "type": "object",
+            "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "monthly_fee_paise": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "program_id": {
+                    "type": "integer"
+                },
+                "start_time": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "weekdays": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_store.Program": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         },
@@ -300,6 +1383,67 @@ const docTemplate = `{
                 "RoleAdmin",
                 "RoleStudent"
             ]
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_store.StudentStatus": {
+            "type": "string",
+            "enum": [
+                "active",
+                "inactive"
+            ],
+            "x-enum-varnames": [
+                "StudentStatusActive",
+                "StudentStatusInactive"
+            ]
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_store.StudentWithUser": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "date_of_birth": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "guardian_name": {
+                    "type": "string"
+                },
+                "guardian_phone": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "joined_at": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.RoleType"
+                },
+                "status": {
+                    "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.StudentStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
         },
         "github_com_Ayushmangit_adaago_git_backend_internal_store.User": {
             "type": "object",

@@ -20,37 +20,27 @@ type StudentsResponse struct {
 	Data []store.StudentWithUser `json:"data"`
 }
 
-// createStudentProfileHandler godoc
+// createStudentHandler godoc
 //
-//	@Summary		Complete student profile
-//	@Description	Create a profile for the authenticated student
+//	@Summary		Create student
+//	@Description	Create a student account and profile. Admin access is required.
 //	@Tags			students
 //	@Accept			json
 //	@Produce		json
 //	@Security		ApiKeyAuth
-//	@Param			request	body		service.CreateStudentProfileInput	true	"Student information"
-//	@Success		201		{object}	StudentResponse
+//	@Param			request	body		service.CreateStudentInput	true	"Student information"
+//	@Success		201		{object}	StudentWithUserResponse
 //	@Failure		400		{object}	ErrorResponse
 //	@Failure		401		{object}	ErrorResponse
 //	@Failure		403		{object}	ErrorResponse
 //	@Failure		409		{object}	ErrorResponse
 //	@Failure		500		{object}	ErrorResponse
-//	@Router			/students/profile [post]
-func (app *application) createStudentProfileHandler(
+//	@Router			/students [post]
+func (app *application) createStudentHandler(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	user := getUserFromCtx(r)
-	if user == nil {
-		app.UnAuthorized(
-			w,
-			r,
-			errors.New("authentication required"),
-		)
-		return
-	}
-
-	var input service.CreateStudentProfileInput
+	var input service.CreateStudentInput
 
 	if err := ReadJson(w, r, &input); err != nil {
 		app.BadRequest(w, r, err)
@@ -62,20 +52,27 @@ func (app *application) createStudentProfileHandler(
 		return
 	}
 
-	student, err := app.service.Students.CreateProfile(
+	student, err := app.service.Students.Create(
 		r.Context(),
-		user,
 		input,
 	)
 	if err != nil {
-		app.handleStudentServiceError(w, r, err)
+		app.handleStudentServiceError(
+			w,
+			r,
+			err,
+		)
 		return
+	}
+
+	response := StudentWithUserResponse{
+		Data: *student,
 	}
 
 	if err := app.jsonResponse(
 		w,
 		http.StatusCreated,
-		student,
+		response,
 	); err != nil {
 		app.InternalServerError(w, r, err)
 	}
@@ -99,6 +96,7 @@ func (app *application) getStudentProfileHandler(
 	r *http.Request,
 ) {
 	user := getUserFromCtx(r)
+
 	if user == nil {
 		app.UnAuthorized(
 			w,
@@ -113,75 +111,22 @@ func (app *application) getStudentProfileHandler(
 		user.ID,
 	)
 	if err != nil {
-		app.handleStudentServiceError(w, r, err)
-		return
-	}
-
-	if err := app.jsonResponse(
-		w,
-		http.StatusOK,
-		student,
-	); err != nil {
-		app.InternalServerError(w, r, err)
-	}
-}
-
-// updateStudentProfileHandler godoc
-//
-//	@Summary		Update student profile
-//	@Description	Update the authenticated student's profile
-//	@Tags			students
-//	@Accept			json
-//	@Produce		json
-//	@Security		ApiKeyAuth
-//	@Param			request	body		service.UpdateStudentProfileInput	true	"Profile update"
-//	@Success		200		{object}	StudentWithUserResponse
-//	@Failure		400		{object}	ErrorResponse
-//	@Failure		401		{object}	ErrorResponse
-//	@Failure		403		{object}	ErrorResponse
-//	@Failure		404		{object}	ErrorResponse
-//	@Failure		500		{object}	ErrorResponse
-//	@Router			/students/profile [patch]
-func (app *application) updateStudentProfileHandler(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	user := getUserFromCtx(r)
-	if user == nil {
-		app.UnAuthorized(
+		app.handleStudentServiceError(
 			w,
 			r,
-			errors.New("authentication required"),
+			err,
 		)
 		return
 	}
 
-	var input service.UpdateStudentProfileInput
-
-	if err := ReadJson(w, r, &input); err != nil {
-		app.BadRequest(w, r, err)
-		return
-	}
-
-	if err := Validate.Struct(input); err != nil {
-		app.BadRequest(w, r, err)
-		return
-	}
-
-	student, err := app.service.Students.UpdateProfile(
-		r.Context(),
-		user.ID,
-		input,
-	)
-	if err != nil {
-		app.handleStudentServiceError(w, r, err)
-		return
+	response := StudentWithUserResponse{
+		Data: *student,
 	}
 
 	if err := app.jsonResponse(
 		w,
 		http.StatusOK,
-		student,
+		response,
 	); err != nil {
 		app.InternalServerError(w, r, err)
 	}
@@ -211,10 +156,14 @@ func (app *application) getStudentsHandler(
 		return
 	}
 
+	response := StudentsResponse{
+		Data: students,
+	}
+
 	if err := app.jsonResponse(
 		w,
 		http.StatusOK,
-		students,
+		response,
 	); err != nil {
 		app.InternalServerError(w, r, err)
 	}
@@ -253,14 +202,22 @@ func (app *application) getStudentHandler(
 		studentID,
 	)
 	if err != nil {
-		app.handleStudentServiceError(w, r, err)
+		app.handleStudentServiceError(
+			w,
+			r,
+			err,
+		)
 		return
+	}
+
+	response := StudentWithUserResponse{
+		Data: *student,
 	}
 
 	if err := app.jsonResponse(
 		w,
 		http.StatusOK,
-		student,
+		response,
 	); err != nil {
 		app.InternalServerError(w, r, err)
 	}
@@ -314,14 +271,22 @@ func (app *application) updateStudentHandler(
 		input,
 	)
 	if err != nil {
-		app.handleStudentServiceError(w, r, err)
+		app.handleStudentServiceError(
+			w,
+			r,
+			err,
+		)
 		return
+	}
+
+	response := StudentWithUserResponse{
+		Data: *student,
 	}
 
 	if err := app.jsonResponse(
 		w,
 		http.StatusOK,
-		student,
+		response,
 	); err != nil {
 		app.InternalServerError(w, r, err)
 	}
@@ -342,17 +307,28 @@ func (app *application) handleStudentServiceError(
 		errors.Is(err, service.ErrInvalidStudentStatus):
 		app.BadRequest(w, r, err)
 
-	case errors.Is(err, service.ErrStudentRoleRequired):
-		app.ForbiddenResponse(w, r)
-
 	case errors.Is(err, store.ErrNotFound):
-		app.NotFound(w, r, store.ErrNotFound)
+		app.NotFound(
+			w,
+			r,
+			store.ErrNotFound,
+		)
 
-	case errors.Is(err, service.ErrStudentProfileExists),
+	case errors.Is(err, store.ErrDuplicateEmail),
+		errors.Is(err, store.ErrDuplicateUsername),
+		errors.Is(err, store.ErrConflict),
 		errors.Is(err, store.ErrStudentProfileExists):
-		app.ConflictResponse(w, r, err)
+		app.Conflict(
+			w,
+			r,
+			err,
+		)
 
 	default:
-		app.InternalServerError(w, r, err)
+		app.InternalServerError(
+			w,
+			r,
+			err,
+		)
 	}
 }

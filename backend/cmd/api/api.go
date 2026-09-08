@@ -87,58 +87,92 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
 
-	r.Get("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL(
-			"http://localhost:8080/swagger/doc.json",
+	r.Get(
+		"/swagger/*",
+		httpSwagger.Handler(
+			httpSwagger.URL(
+				"http://localhost:8080/swagger/doc.json",
+			),
 		),
-	))
+	)
 
 	r.Route("/v1", func(r chi.Router) {
-		// Public
-		r.Get("/health", app.healthCheckHandler)
+		/*
+			Public routes
+		*/
+
+		r.Get(
+			"/health",
+			app.healthCheckHandler,
+		)
 
 		r.Route("/auth", func(r chi.Router) {
-			r.Post("/register", app.registerUserHandler)
-			r.Post("/login", app.loginUserHandler)
+			r.Post(
+				"/login",
+				app.loginUserHandler,
+			)
 		})
 
-		// Authentication required
+		/*
+			Authenticated routes
+		*/
+
 		r.Group(func(r chi.Router) {
 			r.Use(app.AuthTokenMiddleware)
 
-			r.Get("/me", app.getCurrentUserHandler)
+			r.Get(
+				"/me",
+				app.getCurrentUserHandler,
+			)
+
+			/*
+				Student routes
+			*/
 
 			r.Route("/students", func(r chi.Router) {
-				// Authenticated student profile routes.
-				r.Group(func(r chi.Router) {
-					r.Use(app.RequireRole(store.RoleStudent))
+				/*
+					Student-only routes
+				*/
 
-					r.Post(
-						"/profile",
-						app.createStudentProfileHandler,
+				r.Group(func(r chi.Router) {
+					r.Use(
+						app.RequireRole(
+							store.RoleStudent,
+						),
 					)
+
 					r.Get(
 						"/profile",
 						app.getStudentProfileHandler,
 					)
-					r.Patch(
-						"/profile",
-						app.updateStudentProfileHandler,
-					)
 				})
 
-				// Admin-only student management routes.
+				/*
+					Admin-only student management
+				*/
+
 				r.Group(func(r chi.Router) {
-					r.Use(app.RequireRole(store.RoleAdmin))
+					r.Use(
+						app.RequireRole(
+							store.RoleAdmin,
+						),
+					)
+
+					r.Post(
+						"/",
+						app.createStudentHandler,
+					)
 
 					r.Get(
 						"/",
 						app.getStudentsHandler,
 					)
+
 					r.Get(
 						"/{studentID}",
 						app.getStudentHandler,
 					)
+
 					r.Patch(
 						"/{studentID}",
 						app.updateStudentHandler,
@@ -146,28 +180,46 @@ func (app *application) mount() http.Handler {
 				})
 			})
 
+			/*
+				Program routes
+			*/
+
 			r.Route("/programs", func(r chi.Router) {
-				// Admin and student
-				r.Get("/", app.getProgramsHandler)
+				/*
+					Authenticated admin/student routes
+				*/
+
+				r.Get(
+					"/",
+					app.getProgramsHandler,
+				)
+
 				r.Get(
 					"/{programID}",
 					app.getProgramHandler,
 				)
+
 				r.Get(
 					"/{programID}/batches",
 					app.getProgramBatchesHandler,
 				)
 
-				// Admin only
+				/*
+					Admin-only routes
+				*/
+
 				r.Group(func(r chi.Router) {
 					r.Use(
-						app.RequireRole(store.RoleAdmin),
+						app.RequireRole(
+							store.RoleAdmin,
+						),
 					)
 
 					r.Post(
 						"/",
 						app.createProgramHandler,
 					)
+
 					r.Patch(
 						"/{programID}",
 						app.updateProgramHandler,
@@ -175,24 +227,41 @@ func (app *application) mount() http.Handler {
 				})
 			})
 
+			/*
+				Batch routes
+			*/
+
 			r.Route("/batches", func(r chi.Router) {
-				// Admin and student
-				r.Get("/", app.getBatchesHandler)
+				/*
+					Authenticated admin/student routes
+				*/
+
+				r.Get(
+					"/",
+					app.getBatchesHandler,
+				)
+
 				r.Get(
 					"/{batchID}",
 					app.getBatchHandler,
 				)
 
-				// Admin only
+				/*
+					Admin-only routes
+				*/
+
 				r.Group(func(r chi.Router) {
 					r.Use(
-						app.RequireRole(store.RoleAdmin),
+						app.RequireRole(
+							store.RoleAdmin,
+						),
 					)
 
 					r.Post(
 						"/",
 						app.createBatchHandler,
 					)
+
 					r.Patch(
 						"/{batchID}",
 						app.updateBatchHandler,
@@ -205,7 +274,9 @@ func (app *application) mount() http.Handler {
 	return r
 }
 
-func (app *application) run(mux http.Handler) {
+func (app *application) run(
+	mux http.Handler,
+) {
 	srv := &http.Server{
 		Addr:         app.config.addr,
 		Handler:      mux,
@@ -214,7 +285,10 @@ func (app *application) run(mux http.Handler) {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	fmt.Println("the server is listening on port:", srv.Addr)
+	fmt.Println(
+		"the server is listening on port:",
+		srv.Addr,
+	)
 
 	if err := srv.ListenAndServe(); err != nil &&
 		err != http.ErrServerClosed {

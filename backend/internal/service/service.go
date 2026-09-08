@@ -54,21 +54,14 @@ type Services struct {
 		) (*store.Batch, error)
 	}
 	Students interface {
-		CreateProfile(
+		Create(
 			ctx context.Context,
-			user *store.User,
-			input CreateStudentProfileInput,
-		) (*store.Student, error)
+			input CreateStudentInput,
+		) (*store.StudentWithUser, error)
 
 		GetProfile(
 			ctx context.Context,
 			userID int64,
-		) (*store.StudentWithUser, error)
-
-		UpdateProfile(
-			ctx context.Context,
-			userID int64,
-			input UpdateStudentProfileInput,
 		) (*store.StudentWithUser, error)
 
 		GetAll(

@@ -35,7 +35,10 @@ func (s *ProgramStore) Create(
 	ctx context.Context,
 	program *Program,
 ) error {
-	ctx, cancel := context.WithTimeout(ctx, QUERY_CANCEL_DURATION)
+	ctx, cancel := context.WithTimeout(
+		ctx,
+		QUERY_CANCEL_DURATION,
+	)
 	defer cancel()
 
 	query := `
@@ -63,6 +66,10 @@ func (s *ProgramStore) Create(
 		&program.UpdatedAt,
 	)
 	if err != nil {
+		if isUniqueViolation(err) {
+			return ErrConflict
+		}
+
 		return err
 	}
 
@@ -207,12 +214,16 @@ func (s *ProgramStore) UpdateByID(
 		&program.UpdatedAt,
 	)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
 			return nil, ErrNotFound
+
+		case isUniqueViolation(err):
+			return nil, ErrConflict
+
+		default:
+			return nil, err
 		}
-
-		return nil, err
 	}
-
 	return program, nil
 }

@@ -4,13 +4,14 @@ import (
 	"errors"
 
 	"github.com/lib/pq"
+	"github.com/lib/pq/pqerror"
 )
 
 const (
-	postgresUniqueViolation     pq.ErrorCode = "23505"
-	postgresForeignKeyViolation pq.ErrorCode = "23503"
-	postgresNotNullViolation    pq.ErrorCode = "23502"
-	postgresCheckViolation      pq.ErrorCode = "23514"
+	postgresUniqueViolation     pqerror.Code = "23505"
+	postgresForeignKeyViolation pqerror.Code = "23503"
+	postgresNotNullViolation    pqerror.Code = "23502"
+	postgresCheckViolation      pqerror.Code = "23514"
 )
 
 func getPostgresError(err error) (*pq.Error, bool) {

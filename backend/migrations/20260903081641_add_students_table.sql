@@ -31,4 +31,4 @@ CREATE INDEX IF NOT EXISTS idx_students_full_name
     ON students(full_name);
 
 -- +goose Down
-DROP TABLE IF EXISTS students;ELECT 'down SQL query';
+DROP TABLE IF EXISTS students;

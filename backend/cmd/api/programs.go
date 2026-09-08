@@ -24,7 +24,7 @@ type ProgramsResponse struct {
 //	@Tags			programs
 //	@Accept			json
 //	@Produce		json
-//	@Security		BearerAuth
+//	@Security		ApiKeyAuth
 //	@Param			request	body		service.CreateProgramInput	true	"Program details"
 //	@Success		201		{object}	ProgramResponse
 //	@Failure		400		{object}	ErrorResponse
@@ -83,7 +83,7 @@ func (app *application) createProgramHandler(
 //	@Description	Returns all sports programs
 //	@Tags			programs
 //	@Produce		json
-//	@Security		BearerAuth
+//	@Security		ApiKeyAuth
 //	@Success		200	{object}	ProgramsResponse
 //	@Failure		401	{object}	ErrorResponse
 //	@Failure		500	{object}	ErrorResponse
@@ -113,7 +113,7 @@ func (app *application) getProgramsHandler(
 //	@Description	Returns a sports program by ID
 //	@Tags			programs
 //	@Produce		json
-//	@Security		BearerAuth
+//	@Security		ApiKeyAuth
 //	@Param			programID	path		int	true	"Program ID"
 //	@Success		200			{object}	ProgramResponse
 //	@Failure		400			{object}	ErrorResponse
@@ -171,7 +171,7 @@ func (app *application) getProgramHandler(
 //	@Tags			programs
 //	@Accept			json
 //	@Produce		json
-//	@Security		BearerAuth
+//	@Security		ApiKeyAuth
 //	@Param			programID	path		int							true	"Program ID"
 //	@Param			request		body		service.UpdateProgramInput	true	"Program update"
 //	@Success		200			{object}	ProgramResponse

@@ -26,7 +26,7 @@ type BatchesResponse struct {
 //	@Tags			batches
 //	@Accept			json
 //	@Produce		json
-//	@Security		BearerAuth
+//	@Security		ApiKeyAuth
 //	@Param			request	body		service.CreateBatchInput	true	"Batch details"
 //	@Success		201		{object}	BatchResponse
 //	@Failure		400		{object}	ErrorResponse
@@ -76,7 +76,7 @@ func (app *application) createBatchHandler(
 //	@Description	Returns all batches
 //	@Tags			batches
 //	@Produce		json
-//	@Security		BearerAuth
+//	@Security		ApiKeyAuth
 //	@Success		200	{object}	BatchesResponse
 //	@Failure		401	{object}	ErrorResponse
 //	@Failure		500	{object}	ErrorResponse
@@ -108,7 +108,7 @@ func (app *application) getBatchesHandler(
 //	@Description	Returns a batch by ID
 //	@Tags			batches
 //	@Produce		json
-//	@Security		BearerAuth
+//	@Security		ApiKeyAuth
 //	@Param			batchID	path		int	true	"Batch ID"
 //	@Success		200		{object}	BatchResponse
 //	@Failure		400		{object}	ErrorResponse
@@ -153,7 +153,7 @@ func (app *application) getBatchHandler(
 //	@Description	Returns all batches belonging to a program
 //	@Tags			batches
 //	@Produce		json
-//	@Security		BearerAuth
+//	@Security		ApiKeyAuth
 //	@Param			programID	path		int	true	"Program ID"
 //	@Success		200			{object}	BatchesResponse
 //	@Failure		400			{object}	ErrorResponse
@@ -199,7 +199,7 @@ func (app *application) getProgramBatchesHandler(
 //	@Tags			batches
 //	@Accept			json
 //	@Produce		json
-//	@Security		BearerAuth
+//	@Security		ApiKeyAuth
 //	@Param			batchID	path		int							true	"Batch ID"
 //	@Param			request	body		service.UpdateBatchInput	true	"Batch update"
 //	@Success		200		{object}	BatchResponse

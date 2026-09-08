@@ -64,15 +64,11 @@ type Storage struct {
 	}
 
 	Students interface {
-		Create(
+		CreateWithUser(
 			ctx context.Context,
+			user *User,
 			student *Student,
 		) error
-
-		ExistsByUserID(
-			ctx context.Context,
-			userID int64,
-		) (bool, error)
 
 		GetByID(
 			ctx context.Context,
