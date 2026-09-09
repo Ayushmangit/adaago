@@ -237,6 +237,141 @@ func (app *application) getBatchEnrollmentsHandler(
 	}
 }
 
+// GetMyEnrollments godoc
+//
+//	@Summary		Get logged-in student's enrollments
+//	@Description	Get all enrollments belonging to the currently authenticated student
+//	@Tags			enrollments
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Success		200	{object}	EnrollmentsResponse
+//	@Failure		401	{object}	ErrorResponse
+//	@Failure		403	{object}	ErrorResponse
+//	@Failure		404	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Router			/students/profile/enrollments [get]
+func (app *application) getMyEnrollmentsHandler(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	user := getUserFromCtx(r)
+
+	enrollments, err := app.service.Enrollments.GetForUser(
+		r.Context(),
+		user.ID,
+	)
+	if err != nil {
+		app.handleEnrollmentServiceError(
+			w,
+			r,
+			err,
+		)
+		return
+	}
+
+	if err := app.jsonResponse(w,
+		http.StatusOK,
+		EnrollmentsResponse{
+			Data: enrollments,
+		}); err != nil {
+		app.InternalServerError(
+			w,
+			r,
+			err,
+		)
+	}
+}
+
+// UpdateEnrollment godoc
+//
+//	@Summary		End an enrollment
+//	@Description	Mark an active enrollment as completed or cancelled
+//	@Tags			enrollments
+//	@Accept			json
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			enrollmentID	path		int								true	"Enrollment ID"
+//	@Param			request			body		service.UpdateEnrollmentInput	true	"Enrollment update payload"
+//	@Success		200				{object}	EnrollmentResponse
+//	@Failure		400				{object}	ErrorResponse
+//	@Failure		401				{object}	ErrorResponse
+//	@Failure		403				{object}	ErrorResponse
+//	@Failure		404				{object}	ErrorResponse
+//	@Failure		409				{object}	ErrorResponse
+//	@Failure		500				{object}	ErrorResponse
+//	@Router			/enrollments/{enrollmentID} [patch]
+func (app *application) updateEnrollmentHandler(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	enrollmentID, err := readPositiveID(
+		r,
+		"enrollmentID",
+	)
+	if err != nil {
+		app.BadRequest(
+			w,
+			r,
+			err,
+		)
+		return
+	}
+
+	var input service.UpdateEnrollmentInput
+
+	if err := ReadJson(
+		w,
+		r,
+		&input,
+	); err != nil {
+		app.BadRequest(
+			w,
+			r,
+			err,
+		)
+		return
+	}
+
+	if err := Validate.Struct(
+		input,
+	); err != nil {
+		app.BadRequest(
+			w,
+			r,
+			err,
+		)
+		return
+	}
+
+	enrollment, err := app.service.Enrollments.UpdateStatus(
+		r.Context(),
+		enrollmentID,
+		input,
+	)
+	if err != nil {
+		app.handleEnrollmentServiceError(
+			w,
+			r,
+			err,
+		)
+		return
+	}
+
+	if err := app.jsonResponse(
+		w,
+		http.StatusOK,
+		EnrollmentResponse{
+			Data: *enrollment,
+		},
+	); err != nil {
+		app.InternalServerError(
+			w,
+			r,
+			err,
+		)
+	}
+}
+
 func (app *application) handleEnrollmentServiceError(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -258,6 +393,35 @@ func (app *application) handleEnrollmentServiceError(
 		errors.Is(err, service.ErrProgramInactive),
 		errors.Is(err, service.ErrBatchFull):
 		app.Conflict(w, r, err)
+	case errors.Is(
+		err,
+		service.ErrInvalidEnrollmentStatus,
+	),
+		errors.Is(
+			err,
+			service.ErrInvalidEnrollmentEndDate,
+		),
+		errors.Is(
+			err,
+			service.ErrEnrollmentEndBeforeJoin,
+		):
+
+		app.BadRequest(
+			w,
+			r,
+			err,
+		)
+
+	case errors.Is(
+		err,
+		service.ErrEnrollmentAlreadyEnded,
+	):
+
+		app.Conflict(
+			w,
+			r,
+			err,
+		)
 
 	default:
 		app.InternalServerError(w, r, err)

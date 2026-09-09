@@ -130,10 +130,6 @@ func (app *application) mount() http.Handler {
 			*/
 
 			r.Route("/students", func(r chi.Router) {
-				/*
-					Student-only routes
-				*/
-
 				r.Group(func(r chi.Router) {
 					r.Use(
 						app.RequireRole(
@@ -145,11 +141,12 @@ func (app *application) mount() http.Handler {
 						"/profile",
 						app.getStudentProfileHandler,
 					)
-				})
 
-				/*
-					Admin-only student management
-				*/
+					r.Get(
+						"/profile/enrollments",
+						app.getMyEnrollmentsHandler,
+					)
+				})
 
 				r.Group(func(r chi.Router) {
 					r.Use(
@@ -177,11 +174,6 @@ func (app *application) mount() http.Handler {
 						"/{studentID}",
 						app.updateStudentHandler,
 					)
-
-					/*
-						Admin can view a student's
-						enrollment history.
-					*/
 
 					r.Get(
 						"/{studentID}/enrollments",
@@ -294,11 +286,6 @@ func (app *application) mount() http.Handler {
 			*/
 
 			r.Route("/enrollments", func(r chi.Router) {
-				/*
-					Enrollment management is currently
-					admin-only.
-				*/
-
 				r.Group(func(r chi.Router) {
 					r.Use(
 						app.RequireRole(
@@ -314,6 +301,11 @@ func (app *application) mount() http.Handler {
 					r.Get(
 						"/{enrollmentID}",
 						app.getEnrollmentHandler,
+					)
+
+					r.Patch(
+						"/{enrollmentID}",
+						app.updateEnrollmentHandler,
 					)
 				})
 			})

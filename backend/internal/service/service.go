@@ -99,6 +99,15 @@ type Services struct {
 			ctx context.Context,
 			batchID int64,
 		) ([]store.Enrollment, error)
+		GetForUser(
+			ctx context.Context,
+			userID int64,
+		) ([]store.Enrollment, error)
+		UpdateStatus(
+			ctx context.Context,
+			enrollmentID int64,
+			input UpdateEnrollmentInput,
+		) (*store.Enrollment, error)
 	}
 }
 

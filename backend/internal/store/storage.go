@@ -110,6 +110,11 @@ type Storage struct {
 			ctx context.Context,
 			batchID int64,
 		) ([]Enrollment, error)
+		UpdateStatus(
+			ctx context.Context,
+			enrollmentID int64,
+			payload UpdateEnrollmentPayload,
+		) (*Enrollment, error)
 	}
 }
 

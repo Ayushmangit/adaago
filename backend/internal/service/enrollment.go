@@ -10,6 +10,24 @@ import (
 )
 
 var (
+	ErrInvalidEnrollmentStatus = errors.New(
+		"enrollment status must be completed or cancelled",
+	)
+
+	ErrEnrollmentAlreadyEnded = errors.New(
+		"enrollment is already completed or cancelled",
+	)
+
+	ErrInvalidEnrollmentEndDate = errors.New(
+		"left_at must use YYYY-MM-DD format",
+	)
+
+	ErrEnrollmentEndBeforeJoin = errors.New(
+		"left_at cannot be before joined_at",
+	)
+)
+
+var (
 	ErrStudentInactive = errors.New(
 		"cannot enroll an inactive student",
 	)
@@ -285,4 +303,101 @@ func parseEnrollmentDate(
 	}
 
 	return date, nil
+}
+
+func (s *EnrollmentService) GetForUser(
+	ctx context.Context,
+	userID int64,
+) ([]store.Enrollment, error) {
+	if userID < 1 {
+		return nil, store.ErrInvalidID
+	}
+	student, err := s.store.Students.GetByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.store.Enrollments.GetByStudentID(
+		ctx,
+		student.ID,
+	)
+}
+
+type UpdateEnrollmentInput struct {
+	Status store.EnrollmentStatus `json:"status" validate:"required,oneof=completed cancelled"`
+
+	LeftAt *string `json:"left_at"`
+}
+
+func (s *EnrollmentService) UpdateStatus(
+	ctx context.Context,
+	enrollmentID int64,
+	input UpdateEnrollmentInput,
+) (*store.Enrollment, error) {
+	if enrollmentID < 1 {
+		return nil, store.ErrInvalidID
+	}
+
+	if input.Status != store.EnrollmentStatusCompleted &&
+		input.Status != store.EnrollmentStatusCancelled {
+
+		return nil, ErrInvalidEnrollmentStatus
+	}
+
+	enrollment, err := s.store.Enrollments.GetByID(
+		ctx,
+		enrollmentID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if enrollment.Status !=
+		store.EnrollmentStatusActive {
+
+		return nil, ErrEnrollmentAlreadyEnded
+	}
+
+	now := time.Now().UTC()
+	leftAt := time.Date(
+		now.Year(),
+		now.Month(),
+		now.Day(),
+		0,
+		0,
+		0,
+		0,
+		time.UTC,
+	)
+
+	if input.LeftAt != nil {
+		parsed, err := time.Parse(
+			"2006-01-02",
+			strings.TrimSpace(
+				*input.LeftAt,
+			),
+		)
+		if err != nil {
+			return nil,
+				ErrInvalidEnrollmentEndDate
+		}
+
+		leftAt = parsed
+	}
+
+	if leftAt.Before(
+		enrollment.JoinedAt,
+	) {
+		return nil,
+			ErrEnrollmentEndBeforeJoin
+	}
+
+	return s.store.Enrollments.UpdateStatus(
+		ctx,
+		enrollmentID,
+		store.UpdateEnrollmentPayload{
+			Status: input.Status,
+			LeftAt: leftAt,
+		},
+	)
 }

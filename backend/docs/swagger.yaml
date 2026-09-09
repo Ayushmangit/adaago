@@ -236,6 +236,19 @@ definitions:
         minItems: 1
         type: array
     type: object
+  github_com_Ayushmangit_adaago_git_backend_internal_service.UpdateEnrollmentInput:
+    properties:
+      left_at:
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.EnrollmentStatus'
+        enum:
+        - completed
+        - cancelled
+    required:
+    - status
+    type: object
   github_com_Ayushmangit_adaago_git_backend_internal_service.UpdateProgramInput:
     properties:
       description:
@@ -718,6 +731,58 @@ paths:
       summary: Get enrollment
       tags:
       - enrollments
+    patch:
+      consumes:
+      - application/json
+      description: Mark an active enrollment as completed or cancelled
+      parameters:
+      - description: Enrollment ID
+        in: path
+        name: enrollmentID
+        required: true
+        type: integer
+      - description: Enrollment update payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_service.UpdateEnrollmentInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/cmd_api.EnrollmentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: End an enrollment
+      tags:
+      - enrollments
   /health:
     get:
       description: Returns the API's current status, environment, and version
@@ -1181,6 +1246,37 @@ paths:
       summary: Get student profile
       tags:
       - students
+  /students/profile/enrollments:
+    get:
+      description: Get all enrollments belonging to the currently authenticated student
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/cmd_api.EnrollmentsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get logged-in student's enrollments
+      tags:
+      - enrollments
 securityDefinitions:
   ApiKeyAuth:
     in: header

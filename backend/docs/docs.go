@@ -525,6 +525,86 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Mark an active enrollment as completed or cancelled",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "enrollments"
+                ],
+                "summary": "End an enrollment",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Enrollment ID",
+                        "name": "enrollmentID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Enrollment update payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_service.UpdateEnrollmentInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.EnrollmentResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
             }
         },
         "/health": {
@@ -1020,6 +1100,55 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/cmd_api.StudentWithUserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/students/profile/enrollments": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get all enrollments belonging to the currently authenticated student",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "enrollments"
+                ],
+                "summary": "Get logged-in student's enrollments",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.EnrollmentsResponse"
                         }
                     },
                     "401": {
@@ -1595,6 +1724,28 @@ const docTemplate = `{
                     "items": {
                         "type": "integer"
                     }
+                }
+            }
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_service.UpdateEnrollmentInput": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "left_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "enum": [
+                        "completed",
+                        "cancelled"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.EnrollmentStatus"
+                        }
+                    ]
                 }
             }
         },

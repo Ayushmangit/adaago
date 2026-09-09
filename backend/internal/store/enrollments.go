@@ -269,3 +269,66 @@ func (s *EnrollmentStore) GetByBatchID(
 
 	return enrollments, nil
 }
+
+type UpdateEnrollmentPayload struct {
+	Status EnrollmentStatus
+	LeftAt time.Time
+}
+
+func (s *EnrollmentStore) UpdateStatus(
+	ctx context.Context,
+	enrollmentID int64,
+	payload UpdateEnrollmentPayload,
+) (*Enrollment, error) {
+	ctx, cancel := context.WithTimeout(
+		ctx,
+		QUERY_CANCEL_DURATION,
+	)
+	defer cancel()
+
+	query := `
+		UPDATE enrollments
+		SET
+			status = $1,
+			left_at = $2,
+			updated_at = NOW()
+		WHERE id = $3
+		RETURNING
+			id,
+			student_id,
+			batch_id,
+			joined_at,
+			left_at,
+			status,
+			created_at,
+			updated_at
+	`
+
+	enrollment := &Enrollment{}
+
+	err := s.db.QueryRowContext(
+		ctx,
+		query,
+		payload.Status,
+		payload.LeftAt,
+		enrollmentID,
+	).Scan(
+		&enrollment.ID,
+		&enrollment.StudentID,
+		&enrollment.BatchID,
+		&enrollment.JoinedAt,
+		&enrollment.LeftAt,
+		&enrollment.Status,
+		&enrollment.CreatedAt,
+		&enrollment.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+
+		return nil, err
+	}
+
+	return enrollment, nil
+}
