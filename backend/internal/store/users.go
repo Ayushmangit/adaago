@@ -216,3 +216,44 @@ func (s *UserStore) DeleteByID(ctx context.Context, userID int64) error {
 	}
 	return nil
 }
+
+func (s *UserStore) UpdatePassword(
+	ctx context.Context,
+	userID int64,
+	password Password,
+) error {
+	ctx, cancel := context.WithTimeout(
+		ctx,
+		QUERY_CANCEL_DURATION,
+	)
+	defer cancel()
+
+	query := `
+		UPDATE users
+		SET
+			password = $1,
+			updated_at = NOW()
+		WHERE id = $2
+	`
+
+	result, err := s.db.ExecContext(
+		ctx,
+		query,
+		password.hash,
+		userID,
+	)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}

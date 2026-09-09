@@ -25,6 +25,7 @@ type Storage struct {
 		GetByEmail(ctx context.Context, email string) (*User, error)
 		DeleteByID(ctx context.Context, userID int64) error
 		UpdateByID(ctx context.Context, userID int64, payload UpdateUserPayload) (*User, error)
+		UpdatePassword(ctx context.Context, userID int64, password Password) error
 	}
 	Programs interface {
 		Create(ctx context.Context, program *Program) error
@@ -116,6 +117,44 @@ type Storage struct {
 			payload UpdateEnrollmentPayload,
 		) (*Enrollment, error)
 	}
+	Attendance interface {
+		Create(
+			ctx context.Context,
+			attendance *Attendance,
+		) error
+
+		GetByID(
+			ctx context.Context,
+			attendanceID int64,
+		) (*Attendance, error)
+
+		GetByEnrollmentID(
+			ctx context.Context,
+			enrollmentID int64,
+		) ([]Attendance, error)
+
+		GetByBatchIDAndDate(
+			ctx context.Context,
+			batchID int64,
+			attendanceDate time.Time,
+		) ([]Attendance, error)
+
+		GetByStudentID(
+			ctx context.Context,
+			studentID int64,
+		) ([]Attendance, error)
+
+		UpdateByID(
+			ctx context.Context,
+			attendanceID int64,
+			payload UpdateAttendancePayload,
+		) (*Attendance, error)
+
+		BulkUpsert(
+			ctx context.Context,
+			records []BulkAttendanceRecord,
+		) ([]Attendance, error)
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
@@ -125,6 +164,7 @@ func NewStorage(db *sql.DB) Storage {
 		Batches:     &BatchStore{db},
 		Students:    &StudentStore{db},
 		Enrollments: &EnrollmentStore{db},
+		Attendance:  &AttendanceStore{db},
 	}
 }
 

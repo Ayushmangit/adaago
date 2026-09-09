@@ -24,6 +24,219 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/attendance": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Mark attendance for an enrollment. Admin access is required.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "attendance"
+                ],
+                "summary": "Mark attendance",
+                "parameters": [
+                    {
+                        "description": "Attendance details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_service.CreateAttendanceInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.AttendanceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/attendance/{attendanceID}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get a single attendance record by ID. Admin access is required.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "attendance"
+                ],
+                "summary": "Get attendance",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Attendance ID",
+                        "name": "attendanceID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.AttendanceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Update the status or remarks of an attendance record. Admin access is required.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "attendance"
+                ],
+                "summary": "Update attendance",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Attendance ID",
+                        "name": "attendanceID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Attendance update payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_service.UpdateAttendanceInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.AttendanceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "description": "Login and return an access token and profile status",
@@ -324,6 +537,153 @@ const docTemplate = `{
                 }
             }
         },
+        "/batches/{batchID}/attendance": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns attendance records for a batch on a specific date. Admin access is required.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "attendance"
+                ],
+                "summary": "List batch attendance",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Batch ID",
+                        "name": "batchID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Attendance date (YYYY-MM-DD)",
+                        "name": "date",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.AttendancesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/batches/{batchID}/attendance/bulk": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Create or update attendance for multiple enrollments in a batch",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "attendance"
+                ],
+                "summary": "Mark attendance for a batch",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Batch ID",
+                        "name": "batchID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Bulk attendance payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_service.BulkAttendanceInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.AttendancesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/batches/{batchID}/enrollments": {
             "get": {
                 "security": [
@@ -594,6 +954,70 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/enrollments/{enrollmentID}/attendance": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns attendance history for an enrollment. Admin access is required.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "attendance"
+                ],
+                "summary": "List enrollment attendance",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Enrollment ID",
+                        "name": "enrollmentID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.AttendancesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/cmd_api.ErrorResponse"
                         }
@@ -1129,6 +1553,55 @@ const docTemplate = `{
                 }
             }
         },
+        "/students/profile/attendance": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns attendance history belonging to the currently authenticated student.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "attendance"
+                ],
+                "summary": "Get logged-in student's attendance",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.AttendancesResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/students/profile/enrollments": {
             "get": {
                 "security": [
@@ -1382,6 +1855,25 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "cmd_api.AttendanceResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.Attendance"
+                }
+            }
+        },
+        "cmd_api.AttendancesResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.Attendance"
+                    }
+                }
+            }
+        },
         "cmd_api.BatchResponse": {
             "type": "object",
             "properties": {
@@ -1571,6 +2063,87 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_Ayushmangit_adaago_git_backend_internal_service.BulkAttendanceInput": {
+            "type": "object",
+            "required": [
+                "attendance_date",
+                "records"
+            ],
+            "properties": {
+                "attendance_date": {
+                    "type": "string"
+                },
+                "records": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_service.BulkAttendanceRecordInput"
+                    }
+                }
+            }
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_service.BulkAttendanceRecordInput": {
+            "type": "object",
+            "required": [
+                "enrollment_id",
+                "status"
+            ],
+            "properties": {
+                "enrollment_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "remarks": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "status": {
+                    "enum": [
+                        "present",
+                        "absent",
+                        "leave"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.AttendanceStatus"
+                        }
+                    ]
+                }
+            }
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_service.CreateAttendanceInput": {
+            "type": "object",
+            "required": [
+                "attendance_date",
+                "enrollment_id",
+                "status"
+            ],
+            "properties": {
+                "attendance_date": {
+                    "type": "string"
+                },
+                "enrollment_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "remarks": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "status": {
+                    "enum": [
+                        "present",
+                        "absent",
+                        "leave"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.AttendanceStatus"
+                        }
+                    ]
+                }
+            }
+        },
         "github_com_Ayushmangit_adaago_git_backend_internal_service.CreateBatchInput": {
             "type": "object",
             "required": [
@@ -1693,6 +2266,30 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_Ayushmangit_adaago_git_backend_internal_service.UpdateAttendanceInput": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "remarks": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "status": {
+                    "enum": [
+                        "present",
+                        "absent",
+                        "leave"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.AttendanceStatus"
+                        }
+                    ]
+                }
+            }
+        },
         "github_com_Ayushmangit_adaago_git_backend_internal_service.UpdateBatchInput": {
             "type": "object",
             "properties": {
@@ -1765,6 +2362,48 @@ const docTemplate = `{
                     "minLength": 2
                 }
             }
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_store.Attendance": {
+            "type": "object",
+            "properties": {
+                "attendance_date": {
+                    "type": "string"
+                },
+                "enrollment_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "marked_at": {
+                    "type": "string"
+                },
+                "marked_by": {
+                    "type": "integer"
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.AttendanceStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_store.AttendanceStatus": {
+            "type": "string",
+            "enum": [
+                "present",
+                "absent",
+                "leave"
+            ],
+            "x-enum-varnames": [
+                "AttendancePresent",
+                "AttendanceAbsent",
+                "AttendanceLeave"
+            ]
         },
         "github_com_Ayushmangit_adaago_git_backend_internal_store.Batch": {
             "type": "object",

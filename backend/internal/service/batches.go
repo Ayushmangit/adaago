@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"time"
@@ -340,6 +341,7 @@ func parseStoredBatchTime(value string) (time.Time, error) {
 	formats := []string{
 		"15:04",
 		"15:04:05",
+		time.RFC3339,
 	}
 
 	for _, format := range formats {
@@ -349,7 +351,8 @@ func parseStoredBatchTime(value string) (time.Time, error) {
 		}
 	}
 
-	return time.Time{}, errors.New(
-		"stored batch time has an invalid format",
+	return time.Time{}, fmt.Errorf(
+		"stored batch time has an invalid format: %q",
+		value,
 	)
 }

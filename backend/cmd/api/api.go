@@ -124,6 +124,10 @@ func (app *application) mount() http.Handler {
 				"/me",
 				app.getCurrentUserHandler,
 			)
+			r.Patch(
+				"/me/password",
+				app.changePasswordHandler,
+			)
 
 			/*
 				Student routes
@@ -145,6 +149,10 @@ func (app *application) mount() http.Handler {
 					r.Get(
 						"/profile/enrollments",
 						app.getMyEnrollmentsHandler,
+					)
+					r.Get(
+						"/profile/attendance",
+						app.getMyAttendanceHandler,
 					)
 				})
 
@@ -278,6 +286,14 @@ func (app *application) mount() http.Handler {
 						"/{batchID}/enrollments",
 						app.getBatchEnrollmentsHandler,
 					)
+					r.Get(
+						"/{batchID}/attendance",
+						app.getBatchAttendanceHandler,
+					)
+					r.Post(
+						"/{batchID}/attendance/bulk",
+						app.bulkAttendanceHandler,
+					)
 				})
 			})
 
@@ -306,6 +322,34 @@ func (app *application) mount() http.Handler {
 					r.Patch(
 						"/{enrollmentID}",
 						app.updateEnrollmentHandler,
+					)
+					r.Get(
+						"/{enrollmentID}/attendance",
+						app.getEnrollmentAttendanceHandler,
+					)
+				})
+			})
+			r.Route("/attendance", func(r chi.Router) {
+				r.Group(func(r chi.Router) {
+					r.Use(
+						app.RequireRole(
+							store.RoleAdmin,
+						),
+					)
+
+					r.Post(
+						"/",
+						app.createAttendanceHandler,
+					)
+
+					r.Get(
+						"/{attendanceID}",
+						app.getAttendanceHandler,
+					)
+
+					r.Patch(
+						"/{attendanceID}",
+						app.updateAttendanceHandler,
 					)
 				})
 			})

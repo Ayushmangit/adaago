@@ -109,6 +109,55 @@ type Services struct {
 			input UpdateEnrollmentInput,
 		) (*store.Enrollment, error)
 	}
+
+	Users interface {
+		ChangePassword(
+			ctx context.Context,
+			userID int64,
+			input ChangePasswordInput,
+		) error
+	}
+	Attendance interface {
+		Create(
+			ctx context.Context,
+			markedBy int64,
+			input CreateAttendanceInput,
+		) (*store.Attendance, error)
+
+		GetByID(
+			ctx context.Context,
+			attendanceID int64,
+		) (*store.Attendance, error)
+
+		GetByEnrollmentID(
+			ctx context.Context,
+			enrollmentID int64,
+		) ([]store.Attendance, error)
+
+		GetByBatchAndDate(
+			ctx context.Context,
+			batchID int64,
+			date string,
+		) ([]store.Attendance, error)
+
+		GetForUser(
+			ctx context.Context,
+			userID int64,
+		) ([]store.Attendance, error)
+
+		UpdateByID(
+			ctx context.Context,
+			attendanceID int64,
+			input UpdateAttendanceInput,
+		) (*store.Attendance, error)
+
+		BulkUpsert(
+			ctx context.Context,
+			batchID int64,
+			markedBy int64,
+			input BulkAttendanceInput,
+		) ([]store.Attendance, error)
+	}
 }
 
 func NewServices(storage store.Storage) Services {
@@ -117,5 +166,7 @@ func NewServices(storage store.Storage) Services {
 		Batches:     &BatchService{storage},
 		Students:    &StudentService{storage},
 		Enrollments: &EnrollmentService{storage},
+		Users:       &UserService{storage},
+		Attendance:  &AttendanceService{storage},
 	}
 }
