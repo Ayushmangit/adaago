@@ -130,10 +130,6 @@ func (app *application) mount() http.Handler {
 			*/
 
 			r.Route("/students", func(r chi.Router) {
-				/*
-					Student-only routes
-				*/
-
 				r.Group(func(r chi.Router) {
 					r.Use(
 						app.RequireRole(
@@ -145,11 +141,12 @@ func (app *application) mount() http.Handler {
 						"/profile",
 						app.getStudentProfileHandler,
 					)
-				})
 
-				/*
-					Admin-only student management
-				*/
+					r.Get(
+						"/profile/enrollments",
+						app.getMyEnrollmentsHandler,
+					)
+				})
 
 				r.Group(func(r chi.Router) {
 					r.Use(
@@ -176,6 +173,11 @@ func (app *application) mount() http.Handler {
 					r.Patch(
 						"/{studentID}",
 						app.updateStudentHandler,
+					)
+
+					r.Get(
+						"/{studentID}/enrollments",
+						app.getStudentEnrollmentsHandler,
 					)
 				})
 			})
@@ -265,6 +267,45 @@ func (app *application) mount() http.Handler {
 					r.Patch(
 						"/{batchID}",
 						app.updateBatchHandler,
+					)
+
+					/*
+						Admin can view the roster /
+						enrollments for a batch.
+					*/
+
+					r.Get(
+						"/{batchID}/enrollments",
+						app.getBatchEnrollmentsHandler,
+					)
+				})
+			})
+
+			/*
+				Enrollment routes
+			*/
+
+			r.Route("/enrollments", func(r chi.Router) {
+				r.Group(func(r chi.Router) {
+					r.Use(
+						app.RequireRole(
+							store.RoleAdmin,
+						),
+					)
+
+					r.Post(
+						"/",
+						app.createEnrollmentHandler,
+					)
+
+					r.Get(
+						"/{enrollmentID}",
+						app.getEnrollmentHandler,
+					)
+
+					r.Patch(
+						"/{enrollmentID}",
+						app.updateEnrollmentHandler,
 					)
 				})
 			})

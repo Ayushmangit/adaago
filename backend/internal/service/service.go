@@ -79,12 +79,43 @@ type Services struct {
 			input AdminUpdateStudentInput,
 		) (*store.StudentWithUser, error)
 	}
+	Enrollments interface {
+		Create(
+			ctx context.Context,
+			input CreateEnrollmentInput,
+		) (*store.Enrollment, error)
+
+		GetByID(
+			ctx context.Context,
+			enrollmentID int64,
+		) (*store.Enrollment, error)
+
+		GetByStudentID(
+			ctx context.Context,
+			studentID int64,
+		) ([]store.Enrollment, error)
+
+		GetByBatchID(
+			ctx context.Context,
+			batchID int64,
+		) ([]store.Enrollment, error)
+		GetForUser(
+			ctx context.Context,
+			userID int64,
+		) ([]store.Enrollment, error)
+		UpdateStatus(
+			ctx context.Context,
+			enrollmentID int64,
+			input UpdateEnrollmentInput,
+		) (*store.Enrollment, error)
+	}
 }
 
 func NewServices(storage store.Storage) Services {
 	return Services{
-		Programs: &ProgramService{storage},
-		Batches:  &BatchService{storage},
-		Students: &StudentService{storage},
+		Programs:    &ProgramService{storage},
+		Batches:     &BatchService{storage},
+		Students:    &StudentService{storage},
+		Enrollments: &EnrollmentService{storage},
 	}
 }

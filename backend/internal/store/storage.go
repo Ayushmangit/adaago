@@ -90,14 +90,41 @@ type Storage struct {
 			payload UpdateStudentPayload,
 		) (*StudentWithUser, error)
 	}
+	Enrollments interface {
+		Create(
+			ctx context.Context,
+			enrollment *Enrollment,
+		) error
+
+		GetByID(
+			ctx context.Context,
+			enrollmentID int64,
+		) (*Enrollment, error)
+
+		GetByStudentID(
+			ctx context.Context,
+			studentID int64,
+		) ([]Enrollment, error)
+
+		GetByBatchID(
+			ctx context.Context,
+			batchID int64,
+		) ([]Enrollment, error)
+		UpdateStatus(
+			ctx context.Context,
+			enrollmentID int64,
+			payload UpdateEnrollmentPayload,
+		) (*Enrollment, error)
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
 	return Storage{
-		Users:    &UserStore{db},
-		Programs: &ProgramStore{db},
-		Batches:  &BatchStore{db},
-		Students: &StudentStore{db},
+		Users:       &UserStore{db},
+		Programs:    &ProgramStore{db},
+		Batches:     &BatchStore{db},
+		Students:    &StudentStore{db},
+		Enrollments: &EnrollmentStore{db},
 	}
 }
 
