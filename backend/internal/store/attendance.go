@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -24,6 +26,21 @@ type Attendance struct {
 	MarkedBy       int64            `json:"marked_by"`
 	MarkedAt       time.Time        `json:"marked_at"`
 	UpdatedAt      time.Time        `json:"updated_at"`
+}
+
+type AttendanceRegisterRow struct {
+	EnrollmentID int64             `json:"enrollment_id"`
+	StudentID    int64             `json:"student_id"`
+	FullName     string            `json:"full_name"`
+	Email        string            `json:"email"`
+	Username     string            `json:"username"`
+	JoinedAt     time.Time         `json:"joined_at"`
+	AttendanceID *int64            `json:"attendance_id"`
+	Status       *AttendanceStatus `json:"status"`
+	Remarks      *string           `json:"remarks"`
+	MarkedBy     *int64            `json:"marked_by"`
+	MarkedAt     *time.Time        `json:"marked_at"`
+	UpdatedAt    *time.Time        `json:"updated_at"`
 }
 
 type AttendanceStore struct {
@@ -419,94 +436,181 @@ type BulkAttendanceRecord struct {
 	MarkedBy       int64
 }
 
-func (s *AttendanceStore) BulkUpsert(
-	ctx context.Context,
-	records []BulkAttendanceRecord,
-) ([]Attendance, error) {
-	ctx, cancel := context.WithTimeout(
-		ctx,
-		QUERY_CANCEL_DURATION,
-	)
+func (s *AttendanceStore) BulkUpsert(ctx context.Context, records []BulkAttendanceRecord) ([]Attendance, error) {
+	if len(records) == 0 {
+		return []Attendance{}, nil
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, QUERY_CANCEL_DURATION)
 	defer cancel()
 
-	attendanceRecords := make(
-		[]Attendance,
-		0,
-		len(records),
-	)
+	query := `
+		INSERT INTO attendance (
+			enrollment_id,
+			attendance_date,
+			status,
+			remarks,
+			marked_by
+		)
+		VALUES
+	`
 
-	err := withTx(
-		s.db,
-		ctx,
-		func(tx *sql.Tx) error {
-			query := `
-				INSERT INTO attendance (
-					enrollment_id,
-					attendance_date,
-					status,
-					remarks,
-					marked_by
-				)
-				VALUES ($1, $2, $3, $4, $5)
+	values := make([]string, 0, len(records))
+	args := make([]any, 0, len(records)*5)
 
-				ON CONFLICT (
-					enrollment_id,
-					attendance_date
-				)
-				DO UPDATE SET
-					status = EXCLUDED.status,
-					remarks = EXCLUDED.remarks,
-					marked_by = EXCLUDED.marked_by,
-					updated_at = NOW()
+	for i, record := range records {
+		offset := i * 5
 
-				RETURNING
-					id,
-					enrollment_id,
-					attendance_date,
-					status,
-					remarks,
-					marked_by,
-					marked_at,
-					updated_at
-			`
+		values = append(values, fmt.Sprintf(
+			"($%d, $%d, $%d, $%d, $%d)",
+			offset+1,
+			offset+2,
+			offset+3,
+			offset+4,
+			offset+5,
+		))
 
-			for _, record := range records {
-				var attendance Attendance
+		args = append(
+			args,
+			record.EnrollmentID,
+			record.AttendanceDate,
+			record.Status,
+			record.Remarks,
+			record.MarkedBy,
+		)
+	}
 
-				err := tx.QueryRowContext(
-					ctx,
-					query,
-					record.EnrollmentID,
-					record.AttendanceDate,
-					record.Status,
-					record.Remarks,
-					record.MarkedBy,
-				).Scan(
-					&attendance.ID,
-					&attendance.EnrollmentID,
-					&attendance.AttendanceDate,
-					&attendance.Status,
-					&attendance.Remarks,
-					&attendance.MarkedBy,
-					&attendance.MarkedAt,
-					&attendance.UpdatedAt,
-				)
-				if err != nil {
-					return err
-				}
+	query += strings.Join(values, ",")
+	query += `
+		ON CONFLICT (
+			enrollment_id,
+			attendance_date
+		)
+		DO UPDATE SET
+			status = EXCLUDED.status,
+			remarks = EXCLUDED.remarks,
+			marked_by = EXCLUDED.marked_by,
+			updated_at = NOW()
+		RETURNING
+			id,
+			enrollment_id,
+			attendance_date,
+			status,
+			remarks,
+			marked_by,
+			marked_at,
+			updated_at
+	`
 
-				attendanceRecords = append(
-					attendanceRecords,
-					attendance,
-				)
-			}
-
-			return nil
-		},
-	)
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
+		switch {
+		case isForeignKeyViolation(err):
+			return nil, ErrNotFound
+		case isCheckViolation(err):
+			return nil, ErrInvalidInput
+		default:
+			return nil, err
+		}
+	}
+	defer rows.Close()
+
+	attendanceRecords := make([]Attendance, 0, len(records))
+
+	for rows.Next() {
+		var attendance Attendance
+
+		if err := rows.Scan(
+			&attendance.ID,
+			&attendance.EnrollmentID,
+			&attendance.AttendanceDate,
+			&attendance.Status,
+			&attendance.Remarks,
+			&attendance.MarkedBy,
+			&attendance.MarkedAt,
+			&attendance.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		attendanceRecords = append(attendanceRecords, attendance)
+	}
+
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
 	return attendanceRecords, nil
+}
+
+func (s *AttendanceStore) GetBatchRegister(ctx context.Context, batchID int64, attendanceDate time.Time) ([]AttendanceRegisterRow, error) {
+	ctx, cancel := context.WithTimeout(ctx, QUERY_CANCEL_DURATION)
+	defer cancel()
+
+	query := `
+		SELECT
+			e.id,
+			s.id,
+			s.full_name,
+			u.email,
+			u.username,
+			e.joined_at,
+			a.id,
+			a.status,
+			a.remarks,
+			a.marked_by,
+			a.marked_at,
+			a.updated_at
+		FROM enrollments e
+		INNER JOIN students s ON s.id = e.student_id
+		INNER JOIN users u ON u.id = s.user_id
+		LEFT JOIN attendance a
+			ON a.enrollment_id = e.id
+			AND a.attendance_date = $2
+		WHERE
+			e.batch_id = $1
+			AND e.joined_at::date <= $2
+			AND (
+				e.left_at IS NULL
+				OR e.left_at::date >= $2
+			)
+		ORDER BY s.full_name ASC
+	`
+
+	rows, err := s.db.QueryContext(ctx, query, batchID, attendanceDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	register := make([]AttendanceRegisterRow, 0)
+
+	for rows.Next() {
+		var row AttendanceRegisterRow
+
+		if err := rows.Scan(
+			&row.EnrollmentID,
+			&row.StudentID,
+			&row.FullName,
+			&row.Email,
+			&row.Username,
+			&row.JoinedAt,
+			&row.AttendanceID,
+			&row.Status,
+			&row.Remarks,
+			&row.MarkedBy,
+			&row.MarkedAt,
+			&row.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		register = append(register, row)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return register, nil
 }

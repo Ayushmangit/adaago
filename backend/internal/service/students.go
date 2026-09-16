@@ -146,11 +146,37 @@ func (s *StudentService) GetProfile(
 	)
 }
 
+type GetStudentsInput struct {
+	Search   string
+	Page     int
+	PageSize int
+}
+
 func (s *StudentService) GetAll(
 	ctx context.Context,
-) ([]store.StudentWithUser, error) {
+	input GetStudentsInput,
+) (*store.PaginatedStudents, error) {
+	search := strings.TrimSpace(input.Search)
+
+	if input.Page <= 0 {
+		input.Page = 1
+	}
+
+	if input.PageSize <= 0 {
+		input.PageSize = 20
+	}
+
+	if input.PageSize > 100 {
+		input.PageSize = 100
+	}
+
 	return s.store.Students.GetAll(
 		ctx,
+		store.StudentFilter{
+			Search:   search,
+			Page:     input.Page,
+			PageSize: input.PageSize,
+		},
 	)
 }
 

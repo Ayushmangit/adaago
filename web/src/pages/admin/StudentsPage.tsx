@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Pencil, Plus, Search, Users, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 
@@ -24,6 +24,9 @@ function StudentsPage() {
 
   const {
     students,
+    total,
+    page,
+    pageSize,
     loading,
     error,
     creating,
@@ -33,6 +36,8 @@ function StudentsPage() {
   } = useAppSelector((state) => state.students);
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
@@ -40,11 +45,12 @@ function StudentsPage() {
     null,
   );
 
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
   const {
     register: registerCreate,
     handleSubmit: handleCreateSubmit,
     reset: resetCreate,
-
     formState: { errors: createFormErrors },
   } = useForm<CreateStudentPayload>();
 
@@ -52,43 +58,46 @@ function StudentsPage() {
     register: registerEdit,
     handleSubmit: handleEditSubmit,
     reset: resetEdit,
-
     formState: { errors: editFormErrors },
   } = useForm<UpdateStudentPayload>();
 
   useEffect(() => {
-    dispatch(getStudents());
-  }, [dispatch]);
+    const timeout = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setCurrentPage(1);
+    }, 400);
 
-  const filteredStudents = useMemo(() => {
-    const value = search.trim().toLowerCase();
+    return () => clearTimeout(timeout);
+  }, [search]);
 
-    if (!value) {
-      return students;
-    }
+  useEffect(() => {
+    dispatch(
+      getStudents({
+        page: currentPage,
+        pageSize,
+        search: debouncedSearch,
+      }),
+    );
+  }, [dispatch, currentPage, pageSize, debouncedSearch]);
 
-    return students.filter((student) => {
-      return (
-        student.full_name.toLowerCase().includes(value) ||
-        student.username.toLowerCase().includes(value) ||
-        student.email.toLowerCase().includes(value) ||
-        student.phone?.includes(value) ||
-        student.guardian_name?.toLowerCase().includes(value)
-      );
-    });
-  }, [students, search]);
+  const refreshStudents = () => {
+    dispatch(
+      getStudents({
+        page: currentPage,
+        pageSize,
+        search: debouncedSearch,
+      }),
+    );
+  };
 
   const openCreateModal = () => {
     dispatch(clearCreateStudentError());
-
     setIsCreateModalOpen(true);
   };
 
   const closeCreateModal = () => {
     dispatch(clearCreateStudentError());
-
     resetCreate();
-
     setIsCreateModalOpen(false);
   };
 
@@ -99,28 +108,20 @@ function StudentsPage() {
 
     resetEdit({
       full_name: student.full_name,
-
       phone: student.phone ?? "",
-
       date_of_birth: student.date_of_birth
         ? student.date_of_birth.slice(0, 10)
         : "",
-
       guardian_name: student.guardian_name ?? "",
-
       guardian_phone: student.guardian_phone ?? "",
-
       address: student.address ?? "",
-
       status: student.status,
     });
   };
 
   const closeEditModal = () => {
     dispatch(clearUpdateStudentError());
-
     resetEdit();
-
     setEditingStudent(null);
   };
 
@@ -155,8 +156,13 @@ function StudentsPage() {
 
     if (createStudent.fulfilled.match(result)) {
       resetCreate();
-
       setIsCreateModalOpen(false);
+
+      if (currentPage === 1) {
+        refreshStudents();
+      } else {
+        setCurrentPage(1);
+      }
     }
   };
 
@@ -184,8 +190,8 @@ function StudentsPage() {
 
     if (updateStudent.fulfilled.match(result)) {
       resetEdit();
-
       setEditingStudent(null);
+      refreshStudents();
     }
   };
 
@@ -223,13 +229,13 @@ function StudentsPage() {
                 type="text"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search students..."
+                placeholder="Search by name, username or email..."
                 className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-gray-900"
               />
             </div>
 
-            <p className="text-sm text-gray-500">
-              {filteredStudents.length} students
+            <p className="whitespace-nowrap text-sm text-gray-500">
+              {total} {total === 1 ? "student" : "students"}
             </p>
           </div>
 
@@ -247,7 +253,7 @@ function StudentsPage() {
             </div>
           )}
 
-          {!loading && !error && filteredStudents.length === 0 && (
+          {!loading && !error && students.length === 0 && (
             <div className="p-12 text-center">
               <Users size={32} className="mx-auto text-gray-400" />
 
@@ -261,7 +267,7 @@ function StudentsPage() {
             </div>
           )}
 
-          {!loading && !error && filteredStudents.length > 0 && (
+          {!loading && !error && students.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-gray-50">
@@ -297,7 +303,7 @@ function StudentsPage() {
                 </thead>
 
                 <tbody className="divide-y divide-gray-200">
-                  {filteredStudents.map((student) => (
+                  {students.map((student) => (
                     <tr
                       key={student.id}
                       className="transition hover:bg-gray-50"
@@ -364,10 +370,40 @@ function StudentsPage() {
               </table>
             </div>
           )}
+
+          {!loading && !error && total > 0 && (
+            <div className="flex items-center justify-between border-t border-gray-200 px-5 py-4">
+              <p className="text-sm text-gray-500">
+                Page {page} of {totalPages}
+              </p>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={currentPage <= 1}
+                  onClick={() =>
+                    setCurrentPage((currentPage) => currentPage - 1)
+                  }
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Previous
+                </button>
+
+                <button
+                  type="button"
+                  disabled={currentPage >= totalPages}
+                  onClick={() =>
+                    setCurrentPage((currentPage) => currentPage + 1)
+                  }
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* CREATE STUDENT MODAL */}
 
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -492,8 +528,6 @@ function StudentsPage() {
         </div>
       )}
 
-      {/* EDIT STUDENT MODAL */}
-
       {editingStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl">
@@ -515,7 +549,6 @@ function StudentsPage() {
                 <div className="mt-3 grid gap-4 md:grid-cols-2">
                   <div>
                     <p className="text-xs text-gray-500">Username</p>
-
                     <p className="mt-1 text-sm font-medium text-gray-900">
                       @{editingStudent.username}
                     </p>
@@ -523,7 +556,6 @@ function StudentsPage() {
 
                   <div>
                     <p className="text-xs text-gray-500">Email</p>
-
                     <p className="mt-1 text-sm font-medium text-gray-900">
                       {editingStudent.email}
                     </p>
@@ -556,7 +588,6 @@ function StudentsPage() {
                 <FormField label="Status">
                   <select {...registerEdit("status")} className={inputClass}>
                     <option value="active">Active</option>
-
                     <option value="inactive">Inactive</option>
                   </select>
                 </FormField>
@@ -595,8 +626,8 @@ function StudentsPage() {
 
                 <div className="md:col-span-2">
                   <FormField label="Address">
-                    <textarea
-                      rows={3}
+                    <input
+                      type="text"
                       {...registerEdit("address")}
                       className={inputClass}
                     />
@@ -621,33 +652,7 @@ function StudentsPage() {
 }
 
 const inputClass =
-  "w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-900";
-
-type ModalHeaderProps = {
-  title: string;
-  description: string;
-  onClose: () => void;
-};
-
-function ModalHeader({ title, description, onClose }: ModalHeaderProps) {
-  return (
-    <div className="flex items-center justify-between border-b border-gray-200 px-6 py-5">
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
-
-        <p className="mt-1 text-sm text-gray-500">{description}</p>
-      </div>
-
-      <button
-        type="button"
-        onClick={onClose}
-        className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
-      >
-        <X size={20} />
-      </button>
-    </div>
-  );
-}
+  "w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-900";
 
 type FormFieldProps = {
   label: string;
@@ -657,22 +662,41 @@ type FormFieldProps = {
 
 function FormField({ label, error, children }: FormFieldProps) {
   return (
-    <div>
-      <label className="mb-2 block text-sm font-medium text-gray-700">
+    <label className="block">
+      <span className="mb-2 block text-sm font-medium text-gray-700">
         {label}
-      </label>
+      </span>
 
       {children}
 
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-    </div>
+      {error && (
+        <span className="mt-1 block text-xs text-red-600">{error}</span>
+      )}
+    </label>
   );
 }
 
-function ErrorBox({ message }: { message: string }) {
+type ModalHeaderProps = {
+  title: string;
+  description: string;
+  onClose: () => void;
+};
+
+function ModalHeader({ title, description, onClose }: ModalHeaderProps) {
   return (
-    <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-      {message}
+    <div className="flex items-start justify-between border-b border-gray-200 p-6">
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+        <p className="mt-1 text-sm text-gray-500">{description}</p>
+      </div>
+
+      <button
+        type="button"
+        onClick={onClose}
+        className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+      >
+        <X size={19} />
+      </button>
     </div>
   );
 }
@@ -704,10 +728,18 @@ function ModalActions({
       <button
         type="submit"
         disabled={loading}
-        className="rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+        className="rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {loading ? loadingText : submitText}
       </button>
+    </div>
+  );
+}
+
+function ErrorBox({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+      {message}
     </div>
   );
 }

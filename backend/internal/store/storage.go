@@ -83,7 +83,8 @@ type Storage struct {
 
 		GetAll(
 			ctx context.Context,
-		) ([]StudentWithUser, error)
+			filter StudentFilter,
+		) (*PaginatedStudents, error)
 
 		UpdateByID(
 			ctx context.Context,
@@ -118,6 +119,11 @@ type Storage struct {
 		) (*Enrollment, error)
 	}
 	Attendance interface {
+		GetBatchRegister(
+			ctx context.Context,
+			batchID int64,
+			attendanceDate time.Time,
+		) ([]AttendanceRegisterRow, error)
 		Create(
 			ctx context.Context,
 			attendance *Attendance,
@@ -155,6 +161,16 @@ type Storage struct {
 			records []BulkAttendanceRecord,
 		) ([]Attendance, error)
 	}
+	FeeDues interface {
+		Create(ctx context.Context, fee *FeeDue) error
+		GetByID(ctx context.Context, feeDueID int64) (*FeeDue, error)
+		GetByEnrollmentID(ctx context.Context, enrollmentID int64) ([]FeeDue, error)
+		GetByBillingMonth(ctx context.Context, billingMonth time.Time) ([]FeeDue, error)
+		GenerateMonthlyDues(ctx context.Context, billingMonth, dueDate time.Time) (*GenerateMonthlyDuesResult, error)
+		UpdateByID(ctx context.Context, feeDueID int64, payload UpdateFeeDuePayload) (*FeeDue, error)
+		GetRegister(ctx context.Context, filter FeeRegisterFilter) (*PaginatedFeeRegister, error)
+		MarkPaid(ctx context.Context, feeDueID, adminID int64, notes *string) (*FeeDue, error)
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
@@ -165,6 +181,7 @@ func NewStorage(db *sql.DB) Storage {
 		Students:    &StudentStore{db},
 		Enrollments: &EnrollmentStore{db},
 		Attendance:  &AttendanceStore{db},
+		FeeDues:     &FeeDueStore{db},
 	}
 }
 

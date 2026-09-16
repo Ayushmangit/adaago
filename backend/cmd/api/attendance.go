@@ -613,3 +613,62 @@ func (app *application) bulkAttendanceHandler(
 		)
 	}
 }
+
+type AttendancesRegisterResponse struct {
+	Data []store.AttendanceRegisterRow `json:"data"`
+}
+
+// GetBatchAttendanceRegister godoc
+//
+//	@Summary		Get batch attendance register
+//	@Description	Get enrolled students and their attendance status for a batch on a specific date
+//	@Tags			attendance
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Param			batchID	path		int		true	"Batch ID"
+//	@Param			date	query		string	true	"Attendance date (YYYY-MM-DD)"
+//	@Success		200		{object}	AttendancesRegisterResponse
+//	@Failure		400		{object}	ErrorResponse
+//	@Failure		401		{object}	ErrorResponse
+//	@Failure		403		{object}	ErrorResponse
+//	@Failure		404		{object}	ErrorResponse
+//	@Failure		500		{object}	ErrorResponse
+//	@Router			/batches/{batchID}/attendance/register [get]
+func (app *application) getBatchAttendanceRegisterHandler(w http.ResponseWriter, r *http.Request) {
+	batchID, err := readPositiveID(r, "batchID")
+	if err != nil {
+		app.BadRequest(w, r, err)
+		return
+	}
+
+	date := r.URL.Query().Get("date")
+	if date == "" {
+		app.BadRequest(w, r, errors.New("date query parameter is required"))
+		return
+	}
+
+	register, err := app.service.Attendance.GetBatchRegister(r.Context(), batchID, date)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrInvalidID):
+			app.BadRequest(w, r, err)
+		case errors.Is(err, store.ErrNotFound):
+			app.NotFound(w, r, err)
+		case errors.Is(err, service.ErrInvalidAttendanceDate),
+			errors.Is(err, service.ErrFutureAttendanceDate),
+			errors.Is(err, service.ErrAttendanceNotBatchDay):
+			app.BadRequest(w, r, err)
+		default:
+			app.InternalServerError(w, r, err)
+		}
+		return
+	}
+
+	response := AttendancesRegisterResponse{
+		Data: register,
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, response); err != nil {
+		app.InternalServerError(w, r, err)
+	}
+}

@@ -1,22 +1,41 @@
+import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
 import App from "../App";
-
-import LoginPage from "../pages/LoginPage";
-
-import AdminDashboard from "../pages/admin/AdminDashboard";
-
-import StudentDashboard from "../pages/student/StudentDashboard";
 import ProtectedRoute from "../components/ProtectedRoutes";
-import AdminLayout from "../Layouts/AdminLayout";
-import StudentsPage from "../pages/admin/StudentsPage";
-import ProgramsPage from "../pages/admin/ProgramsPage";
-import BatchesPage from "../pages/admin/BatchesPage";
-import EnrollmentsPage from "../pages/admin/EnrollmentsPage";
-import StudentLayout from "../Layouts/StudentLayout";
-import StudentProfilePage from "../pages/student/StudentProfilePage";
-import StudentEnrollmentsPage from "../pages/student/StudentEnrollmentsPage";
-import AttendancePage from "../pages/admin/AttendancePage";
+
+const LoginPage = lazy(() => import("../pages/LoginPage"));
+
+const AdminLayout = lazy(() => import("../Layouts/AdminLayout"));
+const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard"));
+const StudentsPage = lazy(() => import("../pages/admin/StudentsPage"));
+const ProgramsPage = lazy(() => import("../pages/admin/ProgramsPage"));
+const BatchesPage = lazy(() => import("../pages/admin/BatchesPage"));
+const EnrollmentsPage = lazy(() => import("../pages/admin/EnrollmentsPage"));
+const AttendancePage = lazy(() => import("../pages/admin/AttendancePage"));
+
+const StudentLayout = lazy(() => import("../Layouts/StudentLayout"));
+const StudentDashboard = lazy(
+  () => import("../pages/student/StudentDashboard"),
+);
+const StudentProfilePage = lazy(
+  () => import("../pages/student/StudentProfilePage"),
+);
+const StudentEnrollmentsPage = lazy(
+  () => import("../pages/student/StudentEnrollmentsPage"),
+);
+
+function PageLoader() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-gray-100">
+      <p className="text-sm text-gray-500">Loading...</p>
+    </main>
+  );
+}
+
+function LazyPage({ children }: { children: React.ReactNode }) {
+  return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
+}
 
 export const router = createBrowserRouter([
   {
@@ -31,71 +50,115 @@ export const router = createBrowserRouter([
 
       {
         path: "login",
-        element: <LoginPage />,
+        element: (
+          <LazyPage>
+            <LoginPage />
+          </LazyPage>
+        ),
       },
 
-      // ADMIN
       {
         element: <ProtectedRoute role="admin" />,
 
         children: [
           {
             path: "admin",
-            element: <AdminLayout />,
+            element: (
+              <LazyPage>
+                <AdminLayout />
+              </LazyPage>
+            ),
 
             children: [
               {
                 index: true,
-                element: <AdminDashboard />,
+                element: (
+                  <LazyPage>
+                    <AdminDashboard />
+                  </LazyPage>
+                ),
               },
               {
                 path: "students",
-                element: <StudentsPage />,
+                element: (
+                  <LazyPage>
+                    <StudentsPage />
+                  </LazyPage>
+                ),
               },
               {
                 path: "programs",
-                element: <ProgramsPage />,
+                element: (
+                  <LazyPage>
+                    <ProgramsPage />
+                  </LazyPage>
+                ),
               },
               {
                 path: "batches",
-                element: <BatchesPage />,
+                element: (
+                  <LazyPage>
+                    <BatchesPage />
+                  </LazyPage>
+                ),
               },
               {
                 path: "enrollments",
-                element: <EnrollmentsPage />,
+                element: (
+                  <LazyPage>
+                    <EnrollmentsPage />
+                  </LazyPage>
+                ),
               },
               {
                 path: "attendance",
-                element: <AttendancePage />,
+                element: (
+                  <LazyPage>
+                    <AttendancePage />
+                  </LazyPage>
+                ),
               },
             ],
           },
         ],
       },
 
-      // STUDENT
       {
         element: <ProtectedRoute role="student" />,
 
         children: [
           {
             path: "student",
-            element: <StudentLayout />,
+            element: (
+              <LazyPage>
+                <StudentLayout />
+              </LazyPage>
+            ),
 
             children: [
               {
                 index: true,
-                element: <StudentDashboard />,
+                element: (
+                  <LazyPage>
+                    <StudentDashboard />
+                  </LazyPage>
+                ),
               },
-
               {
                 path: "profile",
-                element: <StudentProfilePage />,
+                element: (
+                  <LazyPage>
+                    <StudentProfilePage />
+                  </LazyPage>
+                ),
               },
-
               {
                 path: "enrollments",
-                element: <StudentEnrollmentsPage />,
+                element: (
+                  <LazyPage>
+                    <StudentEnrollmentsPage />
+                  </LazyPage>
+                ),
               },
             ],
           },

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/Ayushmangit/adaago.git/backend/internal/store"
 )
@@ -66,7 +67,8 @@ type Services struct {
 
 		GetAll(
 			ctx context.Context,
-		) ([]store.StudentWithUser, error)
+			input GetStudentsInput,
+		) (*store.PaginatedStudents, error)
 
 		GetByID(
 			ctx context.Context,
@@ -118,6 +120,11 @@ type Services struct {
 		) error
 	}
 	Attendance interface {
+		GetBatchRegister(
+			ctx context.Context,
+			batchID int64,
+			date string,
+		) ([]store.AttendanceRegisterRow, error)
 		Create(
 			ctx context.Context,
 			markedBy int64,
@@ -158,6 +165,14 @@ type Services struct {
 			input BulkAttendanceInput,
 		) ([]store.Attendance, error)
 	}
+	FeeDues interface {
+		GenerateMonthlyDues(ctx context.Context, input GenerateFeeDuesInput) (*store.GenerateMonthlyDuesResult, error)
+		GetByID(ctx context.Context, feeDueID int64) (*store.FeeDue, error)
+		GetByEnrollmentID(ctx context.Context, enrollmentID int64) ([]store.FeeDue, error)
+		GetByBillingMonth(ctx context.Context, billingMonth time.Time) ([]store.FeeDue, error)
+		GetRegister(ctx context.Context, input GetFeeRegisterInput) (*store.PaginatedFeeRegister, error)
+		MarkPaid(ctx context.Context, feeDueID, adminID int64, notes *string) (*store.FeeDue, error)
+	}
 }
 
 func NewServices(storage store.Storage) Services {
@@ -168,5 +183,6 @@ func NewServices(storage store.Storage) Services {
 		Enrollments: &EnrollmentService{storage},
 		Users:       &UserService{storage},
 		Attendance:  &AttendanceService{storage},
+		FeeDues:     &FeeDueService{storage},
 	}
 }

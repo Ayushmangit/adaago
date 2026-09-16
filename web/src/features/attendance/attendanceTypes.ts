@@ -43,3 +43,23 @@ export type BulkAttendanceArgs = {
   batchID: number;
   payload: BulkAttendancePayload;
 };
+
+export type AttendanceRegisterRow = {
+  enrollment_id: number;
+  student_id: number;
+  full_name: string;
+  email: string;
+  username: string;
+  joined_at: string;
+  attendance_id: number | null;
+  status: AttendanceStatus | null;
+  remarks: string | null;
+  marked_by: number | null;
+  marked_at: string | null;
+  updated_at: string | null;
+};
+
+export type GetBatchAttendanceRegisterArgs = {
+  batchID: number;
+  date: string;
+};

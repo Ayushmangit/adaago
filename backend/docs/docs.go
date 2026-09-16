@@ -684,6 +684,77 @@ const docTemplate = `{
                 }
             }
         },
+        "/batches/{batchID}/attendance/register": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get enrolled students and their attendance status for a batch on a specific date",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "attendance"
+                ],
+                "summary": "Get batch attendance register",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Batch ID",
+                        "name": "batchID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Attendance date (YYYY-MM-DD)",
+                        "name": "date",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.AttendancesRegisterResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/batches/{batchID}/enrollments": {
             "get": {
                 "security": [
@@ -1027,6 +1098,114 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/cmd_api.ErrorResponse"
                         }
+                    }
+                }
+            }
+        },
+        "/fees": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get fee dues with student, batch and program details for a billing month",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "fees"
+                ],
+                "summary": "Get monthly fee register",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Billing month (YYYY-MM-DD)",
+                        "name": "month",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.FeeDueWithDetails"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {}
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {}
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/fees/generate": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Generate fee dues for all enrollments that overlap the specified billing month",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "fees"
+                ],
+                "summary": "Generate monthly fee dues",
+                "parameters": [
+                    {
+                        "description": "Generate monthly fee dues",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.GenerateMonthlyFeeDuesPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.GenerateMonthlyDuesResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {}
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {}
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {}
                     }
                 }
             }
@@ -1401,7 +1580,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Return all student profiles. Admin access is required.",
+                "description": "Return paginated student profiles. Admin access is required.",
                 "produces": [
                     "application/json"
                 ],
@@ -1409,11 +1588,39 @@ const docTemplate = `{
                     "students"
                 ],
                 "summary": "List students",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Students per page",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by name, username or email",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/cmd_api.StudentsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
                         }
                     },
                     "401": {
@@ -1863,6 +2070,17 @@ const docTemplate = `{
                 }
             }
         },
+        "cmd_api.AttendancesRegisterResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.AttendanceRegisterRow"
+                    }
+                }
+            }
+        },
         "cmd_api.AttendancesResponse": {
             "type": "object",
             "properties": {
@@ -1916,6 +2134,21 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "cmd_api.GenerateMonthlyFeeDuesPayload": {
+            "type": "object",
+            "required": [
+                "billing_month",
+                "due_date"
+            ],
+            "properties": {
+                "billing_month": {
+                    "type": "string"
+                },
+                "due_date": {
                     "type": "string"
                 }
             }
@@ -2020,6 +2253,15 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.StudentWithUser"
                     }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         },
@@ -2392,6 +2634,47 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_Ayushmangit_adaago_git_backend_internal_store.AttendanceRegisterRow": {
+            "type": "object",
+            "properties": {
+                "attendance_id": {
+                    "type": "integer"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "enrollment_id": {
+                    "type": "integer"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "joined_at": {
+                    "type": "string"
+                },
+                "marked_at": {
+                    "type": "string"
+                },
+                "marked_by": {
+                    "type": "integer"
+                },
+                "remarks": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.AttendanceStatus"
+                },
+                "student_id": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_Ayushmangit_adaago_git_backend_internal_store.AttendanceStatus": {
             "type": "string",
             "enum": [
@@ -2487,6 +2770,79 @@ const docTemplate = `{
                 "EnrollmentStatusCompleted",
                 "EnrollmentStatusCancelled"
             ]
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_store.FeeDueStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "partial",
+                "paid",
+                "cancelled"
+            ],
+            "x-enum-varnames": [
+                "FeeDueStatusPending",
+                "FeeDueStatusPartial",
+                "FeeDueStatusPaid",
+                "FeeDueStatusCancelled"
+            ]
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_store.FeeDueWithDetails": {
+            "type": "object",
+            "properties": {
+                "amount_paise": {
+                    "type": "integer"
+                },
+                "batch_id": {
+                    "type": "integer"
+                },
+                "batch_name": {
+                    "type": "string"
+                },
+                "billing_month": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "due_date": {
+                    "type": "string"
+                },
+                "enrollment_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "program_id": {
+                    "type": "integer"
+                },
+                "program_name": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.FeeDueStatus"
+                },
+                "student_id": {
+                    "type": "integer"
+                },
+                "student_name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_store.GenerateMonthlyDuesResult": {
+            "type": "object",
+            "properties": {
+                "created": {
+                    "type": "integer"
+                }
+            }
         },
         "github_com_Ayushmangit_adaago_git_backend_internal_store.Program": {
             "type": "object",

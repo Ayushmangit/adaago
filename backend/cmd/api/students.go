@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/Ayushmangit/adaago.git/backend/internal/service"
 	"github.com/Ayushmangit/adaago.git/backend/internal/store"
@@ -17,7 +18,10 @@ type StudentWithUserResponse struct {
 }
 
 type StudentsResponse struct {
-	Data []store.StudentWithUser `json:"data"`
+	Data     []store.StudentWithUser `json:"data"`
+	Total    int64                   `json:"total"`
+	Page     int                     `json:"page"`
+	PageSize int                     `json:"page_size"`
 }
 
 // createStudentHandler godoc
@@ -135,21 +139,49 @@ func (app *application) getStudentProfileHandler(
 // getStudentsHandler godoc
 //
 //	@Summary		List students
-//	@Description	Return all student profiles. Admin access is required.
+//	@Description	Return paginated student profiles. Admin access is required.
 //	@Tags			students
 //	@Produce		json
 //	@Security		ApiKeyAuth
-//	@Success		200	{object}	StudentsResponse
-//	@Failure		401	{object}	ErrorResponse
-//	@Failure		403	{object}	ErrorResponse
-//	@Failure		500	{object}	ErrorResponse
+//	@Param			page		query		int		false	"Page number"		default(1)
+//	@Param			page_size	query		int		false	"Students per page"	default(20)
+//	@Param			search		query		string	false	"Search by name, username or email"
+//	@Success		200			{object}	StudentsResponse
+//	@Failure		400			{object}	ErrorResponse
+//	@Failure		401			{object}	ErrorResponse
+//	@Failure		403			{object}	ErrorResponse
+//	@Failure		500			{object}	ErrorResponse
 //	@Router			/students [get]
-func (app *application) getStudentsHandler(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	students, err := app.service.Students.GetAll(
+func (app *application) getStudentsHandler(w http.ResponseWriter, r *http.Request) {
+	page := 1
+	pageSize := 20
+	search := r.URL.Query().Get("search")
+
+	if value := r.URL.Query().Get("page"); value != "" {
+		parsedPage, err := strconv.Atoi(value)
+		if err != nil || parsedPage < 1 {
+			app.BadRequest(w, r, errors.New("page must be a positive integer"))
+			return
+		}
+		page = parsedPage
+	}
+
+	if value := r.URL.Query().Get("page_size"); value != "" {
+		parsedPageSize, err := strconv.Atoi(value)
+		if err != nil || parsedPageSize < 1 || parsedPageSize > 100 {
+			app.BadRequest(w, r, errors.New("page_size must be between 1 and 100"))
+			return
+		}
+		pageSize = parsedPageSize
+	}
+
+	result, err := app.service.Students.GetAll(
 		r.Context(),
+		service.GetStudentsInput{
+			Search:   search,
+			Page:     page,
+			PageSize: pageSize,
+		},
 	)
 	if err != nil {
 		app.InternalServerError(w, r, err)
@@ -157,14 +189,13 @@ func (app *application) getStudentsHandler(
 	}
 
 	response := StudentsResponse{
-		Data: students,
+		Data:     result.Students,
+		Total:    result.Total,
+		Page:     result.Page,
+		PageSize: result.PageSize,
 	}
 
-	if err := app.jsonResponse(
-		w,
-		http.StatusOK,
-		response,
-	); err != nil {
+	if err := app.jsonResponse(w, http.StatusOK, response); err != nil {
 		app.InternalServerError(w, r, err)
 	}
 }

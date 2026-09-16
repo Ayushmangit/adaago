@@ -11,45 +11,39 @@ import type { StudentWithUser } from "./studentTypes";
 
 type StudentState = {
   students: StudentWithUser[];
+  total: number;
+  page: number;
+  pageSize: number;
 
   profile: StudentWithUser | null;
 
   loading: boolean;
-
   profileLoading: boolean;
-
   creating: boolean;
-
   updating: boolean;
 
   error: string | null;
-
   profileError: string | null;
-
   createError: string | null;
-
   updateError: string | null;
 };
 
 const initialState: StudentState = {
   students: [],
+  total: 0,
+  page: 1,
+  pageSize: 20,
 
   profile: null,
 
   loading: false,
-
   profileLoading: false,
-
   creating: false,
-
   updating: false,
 
   error: null,
-
   profileError: null,
-
   createError: null,
-
   updateError: null,
 };
 
@@ -98,12 +92,12 @@ const studentSlice = createSlice({
 
       .addCase(getStudents.fulfilled, (state, action) => {
         state.loading = false;
-
-        state.students = action.payload;
-
+        state.students = action.payload.students;
+        state.total = action.payload.total;
+        state.page = action.payload.page;
+        state.pageSize = action.payload.pageSize;
         state.error = null;
       })
-
       .addCase(getStudents.rejected, (state, action) => {
         state.loading = false;
 
@@ -150,16 +144,11 @@ const studentSlice = createSlice({
         state.createError = null;
       })
 
-      .addCase(createStudent.fulfilled, (state, action) => {
+      .addCase(createStudent.fulfilled, (state) => {
         state.creating = false;
-
-        state.students.push(action.payload);
-
-        state.students.sort((a, b) => a.full_name.localeCompare(b.full_name));
-
+        state.total += 1;
         state.createError = null;
       })
-
       .addCase(createStudent.rejected, (state, action) => {
         state.creating = false;
 

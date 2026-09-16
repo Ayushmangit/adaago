@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   CalendarCheck,
   Check,
+  Save,
   Search,
   UserCheck,
   UserMinus,
@@ -9,22 +10,16 @@ import {
 } from "lucide-react";
 
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-
 import { getPrograms } from "../../features/programs/programThunks";
 import { getBatches } from "../../features/batches/batchThunks";
-import { getStudents } from "../../features/students/studentThunks";
-
-import { getBatchEnrollments } from "../../features/enrollments/enrollmentThunks";
 
 import {
   bulkAttendance,
-  createAttendance,
-  getBatchAttendance,
-  updateAttendance,
+  getBatchAttendanceRegister,
 } from "../../features/attendance/attendanceThunks";
 
 import type {
-  Attendance,
+  AttendanceRegisterRow,
   AttendanceStatus,
 } from "../../features/attendance/attendanceTypes";
 
@@ -36,6 +31,10 @@ function AttendancePage() {
   const [date, setDate] = useState(getToday());
   const [search, setSearch] = useState("");
 
+  const [draftAttendance, setDraftAttendance] = useState<
+    Record<number, AttendanceStatus>
+  >({});
+
   const { programs, loading: programsLoading } = useAppSelector(
     (state) => state.programs,
   );
@@ -44,46 +43,28 @@ function AttendancePage() {
     (state) => state.batches,
   );
 
-  const { students, loading: studentsLoading } = useAppSelector(
-    (state) => state.students,
-  );
-
-  const { enrollments, loading: enrollmentsLoading } = useAppSelector(
-    (state) => state.enrollments,
-  );
-
-  const {
-    attendance,
-    loading: attendanceLoading,
-    creating,
-    updating,
-    bulkUpdating,
-    error: attendanceError,
-    bulkError,
-  } = useAppSelector((state) => state.attendance);
+  const { register, registerLoading, registerError, bulkUpdating, bulkError } =
+    useAppSelector((state) => state.attendance);
 
   useEffect(() => {
     dispatch(getPrograms());
     dispatch(getBatches());
-    dispatch(getStudents());
   }, [dispatch]);
-
-  useEffect(() => {
-    if (!batchID) return;
-
-    dispatch(getBatchEnrollments(Number(batchID)));
-  }, [dispatch, batchID]);
 
   useEffect(() => {
     if (!batchID || !date) return;
 
     dispatch(
-      getBatchAttendance({
+      getBatchAttendanceRegister({
         batchID: Number(batchID),
         date,
       }),
     );
   }, [dispatch, batchID, date]);
+
+  useEffect(() => {
+    setDraftAttendance({});
+  }, [batchID, date]);
 
   const filteredBatches = useMemo(() => {
     if (!programID) return [];
@@ -93,62 +74,25 @@ function AttendancePage() {
     );
   }, [batches, programID]);
 
-  const attendanceMap = useMemo(() => {
-    const map = new Map<number, Attendance>();
-
-    for (const record of attendance) {
-      map.set(record.enrollment_id, record);
-    }
-
-    return map;
-  }, [attendance]);
-
   const rows = useMemo(() => {
-    if (!batchID) return [];
+    if (!search.trim()) return register;
 
-    return enrollments
-      .filter((enrollment) => {
-        if (enrollment.batch_id !== Number(batchID)) {
-          return false;
-        }
+    const value = search.trim().toLowerCase();
 
-        return isEnrollmentValidForDate(
-          enrollment.joined_at,
-          enrollment.left_at,
-          date,
-        );
-      })
-      .map((enrollment) => {
-        const student = students.find(
-          (student) => student.id === enrollment.student_id,
-        );
+    return register.filter((row) => {
+      return (
+        row.full_name.toLowerCase().includes(value) ||
+        row.email.toLowerCase().includes(value) ||
+        row.username.toLowerCase().includes(value)
+      );
+    });
+  }, [register, search]);
 
-        return {
-          enrollment,
-          student,
-          attendance: attendanceMap.get(enrollment.id) ?? null,
-        };
-      })
-      .filter((row) => {
-        if (!search.trim()) {
-          return true;
-        }
-
-        const value = search.trim().toLowerCase();
-
-        const fullName = row.student?.full_name?.toLowerCase() ?? "";
-
-        const email = row.student?.email?.toLowerCase() ?? "";
-
-        const username = row.student?.username?.toLowerCase() ?? "";
-
-        return (
-          fullName.includes(value) ||
-          email.includes(value) ||
-          username.includes(value)
-        );
-      });
-  }, [enrollments, students, attendanceMap, batchID, date, search]);
+  const getRowStatus = (
+    row: AttendanceRegisterRow,
+  ): AttendanceStatus | null => {
+    return draftAttendance[row.enrollment_id] ?? row.status;
+  };
 
   const summary = useMemo(() => {
     let present = 0;
@@ -156,20 +100,19 @@ function AttendancePage() {
     let leave = 0;
     let unmarked = 0;
 
-    for (const row of rows) {
-      switch (row.attendance?.status) {
+    for (const row of register) {
+      const status = draftAttendance[row.enrollment_id] ?? row.status;
+
+      switch (status) {
         case "present":
           present++;
           break;
-
         case "absent":
           absent++;
           break;
-
         case "leave":
           leave++;
           break;
-
         default:
           unmarked++;
       }
@@ -180,131 +123,169 @@ function AttendancePage() {
       absent,
       leave,
       unmarked,
-      total: rows.length,
+      total: register.length,
     };
-  }, [rows]);
+  }, [register, draftAttendance]);
 
   const selectedBatch = batches.find((batch) => batch.id === Number(batchID));
+
+  const loading = programsLoading || batchesLoading;
+
+  const unsavedChanges = Object.keys(draftAttendance).length;
 
   const handleProgramChange = (value: string) => {
     setProgramID(value);
     setBatchID("");
+    setSearch("");
+    setDraftAttendance({});
   };
 
-  const handleStatus = async (
-    enrollmentID: number,
-    status: AttendanceStatus,
-    currentAttendance: Attendance | null,
-  ) => {
-    if (!date) return;
+  const handleBatchChange = (value: string) => {
+    setBatchID(value);
+    setSearch("");
+    setDraftAttendance({});
+  };
 
-    if (currentAttendance?.status === status) {
-      return;
-    }
+  const handleDateChange = (value: string) => {
+    setDate(value);
+    setSearch("");
+    setDraftAttendance({});
+  };
 
-    if (currentAttendance) {
-      await dispatch(
-        updateAttendance({
-          attendanceID: currentAttendance.id,
+  const handleStatus = (enrollmentID: number, status: AttendanceStatus) => {
+    const row = register.find((item) => item.enrollment_id === enrollmentID);
 
-          payload: {
-            status,
+    if (!row) return;
 
-            ...(currentAttendance.remarks
-              ? {
-                  remarks: currentAttendance.remarks,
-                }
-              : {}),
-          },
-        }),
-      );
+    setDraftAttendance((current) => {
+      const next = { ...current };
 
-      return;
-    }
+      if (row.status === status) {
+        delete next[enrollmentID];
+        return next;
+      }
 
-    await dispatch(
-      createAttendance({
-        enrollment_id: enrollmentID,
-        attendance_date: date,
+      next[enrollmentID] = status;
+
+      return next;
+    });
+  };
+
+  const handleMarkAllPresent = () => {
+    if (!batchID || register.length === 0) return;
+
+    setDraftAttendance((current) => {
+      const next = { ...current };
+
+      for (const row of register) {
+        const currentStatus = current[row.enrollment_id] ?? row.status;
+
+        if (!currentStatus) {
+          next[row.enrollment_id] = "present";
+        }
+      }
+
+      return next;
+    });
+  };
+
+  const handleSubmitAttendance = async () => {
+    if (!batchID || !date || unsavedChanges === 0) return;
+
+    const records = Object.entries(draftAttendance).map(
+      ([enrollmentID, status]) => ({
+        enrollment_id: Number(enrollmentID),
         status,
       }),
     );
-  };
 
-  const handleMarkAllPresent = async () => {
-    if (!batchID || !date || rows.length === 0) {
+    try {
+      await dispatch(
+        bulkAttendance({
+          batchID: Number(batchID),
+          payload: {
+            attendance_date: date,
+            records,
+          },
+        }),
+      ).unwrap();
+
+      setDraftAttendance({});
+    } catch {
       return;
     }
-
-    const unmarkedRows = rows.filter((row) => !row.attendance);
-
-    if (unmarkedRows.length === 0) {
-      return;
-    }
-
-    await dispatch(
-      bulkAttendance({
-        batchID: Number(batchID),
-
-        payload: {
-          attendance_date: date,
-
-          records: unmarkedRows.map((row) => ({
-            enrollment_id: row.enrollment.id,
-
-            status: "present" as const,
-          })),
-        },
-      }),
-    );
   };
 
-  const loading = programsLoading || batchesLoading || studentsLoading;
-
-  const registerLoading = enrollmentsLoading || attendanceLoading;
+  const handleDiscardChanges = () => {
+    setDraftAttendance({});
+  };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-900 text-white">
-              <CalendarCheck className="h-5 w-5" />
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-900 text-white">
+            <CalendarCheck className="h-5 w-5" />
+          </div>
 
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900">
-                Attendance
-              </h1>
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">Attendance</h1>
 
-              <p className="text-sm text-gray-500">
-                Manage daily batch attendance
-              </p>
-            </div>
+            <p className="text-sm text-gray-500">
+              Manage daily batch attendance
+            </p>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleMarkAllPresent}
-          disabled={
-            !batchID ||
-            rows.length === 0 ||
-            summary.unmarked === 0 ||
-            bulkUpdating
-          }
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <UserCheck className="h-4 w-4" />
+        <div className="flex flex-wrap items-center gap-3">
+          {unsavedChanges > 0 && (
+            <span className="text-sm font-medium text-amber-600">
+              {unsavedChanges} unsaved{" "}
+              {unsavedChanges === 1 ? "change" : "changes"}
+            </span>
+          )}
 
-          {bulkUpdating ? "Marking..." : "Mark unmarked present"}
-        </button>
+          {unsavedChanges > 0 && (
+            <button
+              type="button"
+              onClick={handleDiscardChanges}
+              disabled={bulkUpdating}
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Discard
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={handleMarkAllPresent}
+            disabled={
+              !batchID ||
+              register.length === 0 ||
+              summary.unmarked === 0 ||
+              bulkUpdating
+            }
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <UserCheck className="h-4 w-4" />
+            Mark unmarked present
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSubmitAttendance}
+            disabled={!batchID || unsavedChanges === 0 || bulkUpdating}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Save className="h-4 w-4" />
+
+            {bulkUpdating ? "Saving..." : "Mark Attendance"}
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
-
       <div className="rounded-xl border border-gray-200 bg-white p-5">
         <div className="grid gap-4 md:grid-cols-3">
           <div>
@@ -315,8 +296,8 @@ function AttendancePage() {
             <select
               value={programID}
               onChange={(event) => handleProgramChange(event.target.value)}
-              disabled={loading}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-gray-500"
+              disabled={loading || bulkUpdating}
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-gray-500 disabled:bg-gray-50"
             >
               <option value="">Select program</option>
 
@@ -335,8 +316,8 @@ function AttendancePage() {
 
             <select
               value={batchID}
-              onChange={(event) => setBatchID(event.target.value)}
-              disabled={!programID || batchesLoading}
+              onChange={(event) => handleBatchChange(event.target.value)}
+              disabled={!programID || batchesLoading || bulkUpdating}
               className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-gray-500 disabled:bg-gray-50"
             >
               <option value="">Select batch</option>
@@ -358,23 +339,22 @@ function AttendancePage() {
               type="date"
               value={date}
               max={getToday()}
-              onChange={(event) => setDate(event.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-gray-500"
+              onChange={(event) => handleDateChange(event.target.value)}
+              disabled={bulkUpdating}
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-gray-500 disabled:bg-gray-50"
             />
           </div>
         </div>
       </div>
 
       {/* Errors */}
-
-      {(attendanceError || bulkError) && (
+      {(registerError || bulkError) && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {bulkError ?? attendanceError}
+          {bulkError ?? registerError}
         </div>
       )}
 
       {/* Summary */}
-
       {batchID && (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <SummaryCard label="Total" value={summary.total} />
@@ -390,7 +370,6 @@ function AttendancePage() {
       )}
 
       {/* Register */}
-
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
         <div className="flex flex-col gap-4 border-b border-gray-200 p-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -403,6 +382,12 @@ function AttendancePage() {
                 <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
                   <Check className="h-3 w-3" />
                   Complete
+                </span>
+              )}
+
+              {unsavedChanges > 0 && (
+                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                  Unsaved
                 </span>
               )}
             </div>
@@ -451,76 +436,78 @@ function AttendancePage() {
               </thead>
 
               <tbody className="divide-y divide-gray-100">
-                {rows.map(
-                  ({ enrollment, student, attendance: currentAttendance }) => (
-                    <tr key={enrollment.id} className="hover:bg-gray-50/60">
+                {rows.map((row) => {
+                  const status = getRowStatus(row);
+
+                  const changed =
+                    draftAttendance[row.enrollment_id] !== undefined;
+
+                  return (
+                    <tr
+                      key={row.enrollment_id}
+                      className={`transition ${
+                        changed ? "bg-amber-50/50" : "hover:bg-gray-50/60"
+                      }`}
+                    >
                       <td className="px-5 py-4">
                         <div>
-                          <p className="font-medium text-gray-900">
-                            {student?.full_name ??
-                              student?.username ??
-                              `Student #${enrollment.student_id}`}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-900">
+                              {row.full_name || row.username}
+                            </p>
+
+                            {changed && (
+                              <span className="h-2 w-2 rounded-full bg-amber-500" />
+                            )}
+                          </div>
 
                           <p className="mt-0.5 text-sm text-gray-500">
-                            {student?.email ?? "No email"}
+                            {row.email}
                           </p>
                         </div>
                       </td>
 
                       <td className="px-5 py-4 text-sm text-gray-600">
-                        {formatDate(enrollment.joined_at)}
+                        {formatDate(row.joined_at)}
                       </td>
 
                       <td className="px-5 py-4">
-                        <AttendanceBadge status={currentAttendance?.status} />
+                        <AttendanceBadge status={status ?? undefined} />
                       </td>
 
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
                           <StatusButton
                             label="Present"
-                            active={currentAttendance?.status === "present"}
-                            disabled={creating || updating || bulkUpdating}
+                            active={status === "present"}
+                            disabled={bulkUpdating}
                             onClick={() =>
-                              handleStatus(
-                                enrollment.id,
-                                "present",
-                                currentAttendance,
-                              )
+                              handleStatus(row.enrollment_id, "present")
                             }
                           />
 
                           <StatusButton
                             label="Absent"
-                            active={currentAttendance?.status === "absent"}
-                            disabled={creating || updating || bulkUpdating}
+                            active={status === "absent"}
+                            disabled={bulkUpdating}
                             onClick={() =>
-                              handleStatus(
-                                enrollment.id,
-                                "absent",
-                                currentAttendance,
-                              )
+                              handleStatus(row.enrollment_id, "absent")
                             }
                           />
 
                           <StatusButton
                             label="Leave"
-                            active={currentAttendance?.status === "leave"}
-                            disabled={creating || updating || bulkUpdating}
+                            active={status === "leave"}
+                            disabled={bulkUpdating}
                             onClick={() =>
-                              handleStatus(
-                                enrollment.id,
-                                "leave",
-                                currentAttendance,
-                              )
+                              handleStatus(row.enrollment_id, "leave")
                             }
                           />
                         </div>
                       </td>
                     </tr>
-                  ),
-                )}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -545,73 +532,77 @@ function SummaryCard({ label, value }: SummaryCardProps) {
   );
 }
 
+type AttendanceBadgeProps = {
+  status?: AttendanceStatus;
+};
+
+function AttendanceBadge({ status }: AttendanceBadgeProps) {
+  if (status === "present") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
+        <UserCheck className="h-3.5 w-3.5" />
+        Present
+      </span>
+    );
+  }
+
+  if (status === "absent") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700">
+        <UserX className="h-3.5 w-3.5" />
+        Absent
+      </span>
+    );
+  }
+
+  if (status === "leave") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+        <UserMinus className="h-3.5 w-3.5" />
+        Leave
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
+      Unmarked
+    </span>
+  );
+}
+
 type StatusButtonProps = {
   label: string;
   active: boolean;
-  disabled?: boolean;
+  disabled: boolean;
   onClick: () => void;
 };
 
 function StatusButton({ label, active, disabled, onClick }: StatusButtonProps) {
-  let icon = <UserMinus className="h-4 w-4" />;
-
-  if (label === "Present") {
-    icon = <UserCheck className="h-4 w-4" />;
-  }
-
-  if (label === "Absent") {
-    icon = <UserX className="h-4 w-4" />;
-  }
-
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={[
-        "inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition",
+      className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${
         active
           ? "border-gray-900 bg-gray-900 text-white"
-          : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50",
-        disabled ? "cursor-not-allowed opacity-50" : "",
-      ].join(" ")}
+          : "border-gray-200 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50"
+      } disabled:cursor-not-allowed disabled:opacity-60`}
     >
-      {icon}
       {label}
     </button>
   );
 }
 
-function AttendanceBadge({ status }: { status?: AttendanceStatus }) {
-  if (!status) {
-    return (
-      <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
-        Unmarked
-      </span>
-    );
-  }
+type EmptyStateProps = {
+  message: string;
+};
 
-  const styles: Record<AttendanceStatus, string> = {
-    present: "bg-green-100 text-green-700",
-
-    absent: "bg-red-100 text-red-700",
-
-    leave: "bg-amber-100 text-amber-700",
-  };
-
+function EmptyState({ message }: EmptyStateProps) {
   return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${styles[status]}`}
-    >
-      {status}
-    </span>
-  );
-}
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="p-12 text-center">
-      <CalendarCheck className="mx-auto h-9 w-9 text-gray-300" />
+    <div className="p-10 text-center">
+      <CalendarCheck className="mx-auto h-8 w-8 text-gray-300" />
 
       <p className="mt-3 text-sm text-gray-500">{message}</p>
     </div>
@@ -620,56 +611,27 @@ function EmptyState({ message }: { message: string }) {
 
 function getToday() {
   const now = new Date();
+  const offset = now.getTimezoneOffset();
 
-  const year = now.getFullYear();
+  const localDate = new Date(now.getTime() - offset * 60 * 1000);
 
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-
-  const day = String(now.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
+  return localDate.toISOString().split("T")[0];
 }
 
 function formatDate(value: string) {
-  if (!value) {
-    return "-";
-  }
+  if (!value) return "-";
 
-  const date = value.includes("T")
-    ? new Date(value)
-    : new Date(`${value}T00:00:00`);
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
 
   return date.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   });
-}
-
-function getDateOnly(value: string) {
-  return value.split("T")[0];
-}
-
-function isEnrollmentValidForDate(
-  joinedAt: string,
-  leftAt: string | null | undefined,
-  selectedDate: string,
-) {
-  const joinedDate = getDateOnly(joinedAt);
-
-  if (selectedDate < joinedDate) {
-    return false;
-  }
-
-  if (leftAt) {
-    const leftDate = getDateOnly(leftAt);
-
-    if (selectedDate > leftDate) {
-      return false;
-    }
-  }
-
-  return true;
 }
 
 export default AttendancePage;

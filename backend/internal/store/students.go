@@ -350,14 +350,36 @@ func (s *StudentStore) GetByUserID(
 	return student, nil
 }
 
-func (s *StudentStore) GetAll(
-	ctx context.Context,
-) ([]StudentWithUser, error) {
-	ctx, cancel := context.WithTimeout(
-		ctx,
-		QUERY_CANCEL_DURATION,
-	)
+type StudentFilter struct {
+	Search   string
+	Page     int
+	PageSize int
+}
+
+type PaginatedStudents struct {
+	Students []StudentWithUser `json:"students"`
+	Total    int64             `json:"total"`
+	Page     int               `json:"page"`
+	PageSize int               `json:"page_size"`
+}
+
+func (s *StudentStore) GetAll(ctx context.Context, filter StudentFilter) (*PaginatedStudents, error) {
+	ctx, cancel := context.WithTimeout(ctx, QUERY_CANCEL_DURATION)
 	defer cancel()
+
+	if filter.Page <= 0 {
+		filter.Page = 1
+	}
+
+	if filter.PageSize <= 0 {
+		filter.PageSize = 20
+	}
+
+	if filter.PageSize > 100 {
+		filter.PageSize = 100
+	}
+
+	offset := (filter.Page - 1) * filter.PageSize
 
 	query := `
 		SELECT
@@ -375,48 +397,67 @@ func (s *StudentStore) GetAll(
 			s.updated_at,
 			u.username,
 			u.email,
-			u.role
+			u.role,
+			COUNT(*) OVER()
 		FROM students s
-		INNER JOIN users u
-			ON u.id = s.user_id
-		ORDER BY s.full_name ASC
+		INNER JOIN users u ON u.id = s.user_id
+		WHERE
+			$1 = ''
+			OR s.full_name ILIKE '%' || $1 || '%'
+			OR u.username ILIKE '%' || $1 || '%'
+			OR u.email ILIKE '%' || $1 || '%'
+		ORDER BY s.full_name ASC, s.id ASC
+		LIMIT $2
+		OFFSET $3
 	`
 
-	rows, err := s.db.QueryContext(
-		ctx,
-		query,
-	)
+	rows, err := s.db.QueryContext(ctx, query, filter.Search, filter.PageSize, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	students := make(
-		[]StudentWithUser,
-		0,
-	)
+	students := make([]StudentWithUser, 0, filter.PageSize)
+
+	var total int64
 
 	for rows.Next() {
 		var student StudentWithUser
 
-		if err := scanStudentWithUser(
-			rows,
-			&student,
+		if err := rows.Scan(
+			&student.ID,
+			&student.UserID,
+			&student.FullName,
+			&student.Phone,
+			&student.DateOfBirth,
+			&student.GuardianName,
+			&student.GuardianPhone,
+			&student.Address,
+			&student.JoinedAt,
+			&student.Status,
+			&student.CreatedAt,
+			&student.UpdatedAt,
+			&student.Username,
+			&student.Email,
+			&student.Role,
+			&total,
 		); err != nil {
 			return nil, err
 		}
 
-		students = append(
-			students,
-			student,
-		)
+		students = append(students, student)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return students, nil
+	return &PaginatedStudents{
+		Students: students,
+		Total:    total,
+		Page:     filter.Page,
+		PageSize: filter.PageSize,
+	}, nil
 }
 
 func (s *StudentStore) UpdateByID(

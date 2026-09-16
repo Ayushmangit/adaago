@@ -3,8 +3,10 @@ import axios from "axios";
 
 import type {
   Attendance,
+  AttendanceRegisterRow,
   BulkAttendanceArgs,
   CreateAttendancePayload,
+  GetBatchAttendanceRegisterArgs,
   UpdateAttendanceArgs,
 } from "./attendanceTypes";
 import api from "../../api/axios";
@@ -171,6 +173,32 @@ export const bulkAttendance = createAsyncThunk<
       }
 
       return rejectWithValue("Failed to mark bulk attendance");
+    }
+  },
+);
+
+export const getBatchAttendanceRegister = createAsyncThunk<
+  AttendanceRegisterRow[],
+  GetBatchAttendanceRegisterArgs,
+  { rejectValue: string }
+>(
+  "attendance/getBatchAttendanceRegister",
+  async ({ batchID, date }, { rejectWithValue }) => {
+    try {
+      const response = await api.get(
+        `/batches/${batchID}/attendance/register`,
+        { params: { date } },
+      );
+
+      return response.data.data.data;
+    } catch (error) {
+      if (axios.isAxiosError<ApiErrorResponse>(error)) {
+        return rejectWithValue(
+          error.response?.data?.error ?? "Failed to get attendance register",
+        );
+      }
+
+      return rejectWithValue("Failed to get attendance register");
     }
   },
 );

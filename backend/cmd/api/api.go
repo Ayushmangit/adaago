@@ -55,10 +55,7 @@ func (app *application) mount() http.Handler {
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{
-			env.GetString(
-				"CORS_ALLOWED_ORIGINS",
-				"http://localhost:5173",
-			),
+			env.GetString("CORS_ALLOWED_ORIGINS", "http://localhost:5173"),
 		},
 		AllowedMethods: []string{
 			http.MethodGet,
@@ -74,9 +71,7 @@ func (app *application) mount() http.Handler {
 			"Content-Type",
 			"X-CSRF-Token",
 		},
-		ExposedHeaders: []string{
-			"Link",
-		},
+		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: false,
 		MaxAge:           300,
 	}))
@@ -87,30 +82,19 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
 
-	r.Get(
-		"/swagger/*",
-		httpSwagger.Handler(
-			httpSwagger.URL(
-				"http://localhost:8080/swagger/doc.json",
-			),
-		),
-	)
+	r.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("http://localhost:8080/swagger/doc.json"),
+	))
 
 	r.Route("/v1", func(r chi.Router) {
 		/*
 			Public routes
 		*/
 
-		r.Get(
-			"/health",
-			app.healthCheckHandler,
-		)
+		r.Get("/health", app.healthCheckHandler)
 
 		r.Route("/auth", func(r chi.Router) {
-			r.Post(
-				"/login",
-				app.loginUserHandler,
-			)
+			r.Post("/login", app.loginUserHandler)
 		})
 
 		/*
@@ -120,73 +104,38 @@ func (app *application) mount() http.Handler {
 		r.Group(func(r chi.Router) {
 			r.Use(app.AuthTokenMiddleware)
 
-			r.Get(
-				"/me",
-				app.getCurrentUserHandler,
-			)
-			r.Patch(
-				"/me/password",
-				app.changePasswordHandler,
-			)
+			r.Get("/me", app.getCurrentUserHandler)
+			r.Patch("/me/password", app.changePasswordHandler)
 
 			/*
 				Student routes
 			*/
 
 			r.Route("/students", func(r chi.Router) {
+				/*
+					Student-only routes
+				*/
+
 				r.Group(func(r chi.Router) {
-					r.Use(
-						app.RequireRole(
-							store.RoleStudent,
-						),
-					)
+					r.Use(app.RequireRole(store.RoleStudent))
 
-					r.Get(
-						"/profile",
-						app.getStudentProfileHandler,
-					)
-
-					r.Get(
-						"/profile/enrollments",
-						app.getMyEnrollmentsHandler,
-					)
-					r.Get(
-						"/profile/attendance",
-						app.getMyAttendanceHandler,
-					)
+					r.Get("/profile", app.getStudentProfileHandler)
+					r.Get("/profile/enrollments", app.getMyEnrollmentsHandler)
+					r.Get("/profile/attendance", app.getMyAttendanceHandler)
 				})
 
+				/*
+					Admin-only student routes
+				*/
+
 				r.Group(func(r chi.Router) {
-					r.Use(
-						app.RequireRole(
-							store.RoleAdmin,
-						),
-					)
+					r.Use(app.RequireRole(store.RoleAdmin))
 
-					r.Post(
-						"/",
-						app.createStudentHandler,
-					)
-
-					r.Get(
-						"/",
-						app.getStudentsHandler,
-					)
-
-					r.Get(
-						"/{studentID}",
-						app.getStudentHandler,
-					)
-
-					r.Patch(
-						"/{studentID}",
-						app.updateStudentHandler,
-					)
-
-					r.Get(
-						"/{studentID}/enrollments",
-						app.getStudentEnrollmentsHandler,
-					)
+					r.Post("/", app.createStudentHandler)
+					r.Get("/", app.getStudentsHandler)
+					r.Get("/{studentID}", app.getStudentHandler)
+					r.Patch("/{studentID}", app.updateStudentHandler)
+					r.Get("/{studentID}/enrollments", app.getStudentEnrollmentsHandler)
 				})
 			})
 
@@ -199,41 +148,19 @@ func (app *application) mount() http.Handler {
 					Authenticated admin/student routes
 				*/
 
-				r.Get(
-					"/",
-					app.getProgramsHandler,
-				)
-
-				r.Get(
-					"/{programID}",
-					app.getProgramHandler,
-				)
-
-				r.Get(
-					"/{programID}/batches",
-					app.getProgramBatchesHandler,
-				)
+				r.Get("/", app.getProgramsHandler)
+				r.Get("/{programID}", app.getProgramHandler)
+				r.Get("/{programID}/batches", app.getProgramBatchesHandler)
 
 				/*
 					Admin-only routes
 				*/
 
 				r.Group(func(r chi.Router) {
-					r.Use(
-						app.RequireRole(
-							store.RoleAdmin,
-						),
-					)
+					r.Use(app.RequireRole(store.RoleAdmin))
 
-					r.Post(
-						"/",
-						app.createProgramHandler,
-					)
-
-					r.Patch(
-						"/{programID}",
-						app.updateProgramHandler,
-					)
+					r.Post("/", app.createProgramHandler)
+					r.Patch("/{programID}", app.updateProgramHandler)
 				})
 			})
 
@@ -246,54 +173,22 @@ func (app *application) mount() http.Handler {
 					Authenticated admin/student routes
 				*/
 
-				r.Get(
-					"/",
-					app.getBatchesHandler,
-				)
-
-				r.Get(
-					"/{batchID}",
-					app.getBatchHandler,
-				)
+				r.Get("/", app.getBatchesHandler)
+				r.Get("/{batchID}", app.getBatchHandler)
 
 				/*
 					Admin-only routes
 				*/
 
 				r.Group(func(r chi.Router) {
-					r.Use(
-						app.RequireRole(
-							store.RoleAdmin,
-						),
-					)
+					r.Use(app.RequireRole(store.RoleAdmin))
 
-					r.Post(
-						"/",
-						app.createBatchHandler,
-					)
+					r.Post("/", app.createBatchHandler)
+					r.Patch("/{batchID}", app.updateBatchHandler)
 
-					r.Patch(
-						"/{batchID}",
-						app.updateBatchHandler,
-					)
-
-					/*
-						Admin can view the roster /
-						enrollments for a batch.
-					*/
-
-					r.Get(
-						"/{batchID}/enrollments",
-						app.getBatchEnrollmentsHandler,
-					)
-					r.Get(
-						"/{batchID}/attendance",
-						app.getBatchAttendanceHandler,
-					)
-					r.Post(
-						"/{batchID}/attendance/bulk",
-						app.bulkAttendanceHandler,
-					)
+					r.Get("/{batchID}/enrollments", app.getBatchEnrollmentsHandler)
+					r.Get("/{batchID}/attendance", app.getBatchAttendanceHandler)
+					r.Post("/{batchID}/attendance/bulk", app.bulkAttendanceHandler)
 				})
 			})
 
@@ -303,54 +198,40 @@ func (app *application) mount() http.Handler {
 
 			r.Route("/enrollments", func(r chi.Router) {
 				r.Group(func(r chi.Router) {
-					r.Use(
-						app.RequireRole(
-							store.RoleAdmin,
-						),
-					)
+					r.Use(app.RequireRole(store.RoleAdmin))
 
-					r.Post(
-						"/",
-						app.createEnrollmentHandler,
-					)
-
-					r.Get(
-						"/{enrollmentID}",
-						app.getEnrollmentHandler,
-					)
-
-					r.Patch(
-						"/{enrollmentID}",
-						app.updateEnrollmentHandler,
-					)
-					r.Get(
-						"/{enrollmentID}/attendance",
-						app.getEnrollmentAttendanceHandler,
-					)
+					r.Post("/", app.createEnrollmentHandler)
+					r.Get("/{enrollmentID}", app.getEnrollmentHandler)
+					r.Patch("/{enrollmentID}", app.updateEnrollmentHandler)
+					r.Get("/{enrollmentID}/attendance", app.getEnrollmentAttendanceHandler)
 				})
 			})
+
+			/*
+				Attendance routes
+			*/
+
 			r.Route("/attendance", func(r chi.Router) {
 				r.Group(func(r chi.Router) {
-					r.Use(
-						app.RequireRole(
-							store.RoleAdmin,
-						),
-					)
+					r.Use(app.RequireRole(store.RoleAdmin))
 
-					r.Post(
-						"/",
-						app.createAttendanceHandler,
-					)
+					r.Post("/", app.createAttendanceHandler)
+					r.Get("/{attendanceID}", app.getAttendanceHandler)
+					r.Patch("/{attendanceID}", app.updateAttendanceHandler)
+				})
+			})
 
-					r.Get(
-						"/{attendanceID}",
-						app.getAttendanceHandler,
-					)
+			/*
+				Fee routes
+			*/
 
-					r.Patch(
-						"/{attendanceID}",
-						app.updateAttendanceHandler,
-					)
+			r.Route("/fees", func(r chi.Router) {
+				r.Group(func(r chi.Router) {
+					r.Use(app.RequireRole(store.RoleAdmin))
+
+					r.Get("/", app.getFeeRegisterHandler)
+					r.Post("/generate", app.generateMonthlyFeeDuesHandler)
+					r.Patch("/{feeDueID}/paid", app.markFeePaidHandler)
 				})
 			})
 		})

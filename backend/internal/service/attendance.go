@@ -542,3 +542,25 @@ func normalizeAttendanceDateValue(
 		time.UTC,
 	)
 }
+
+func (s *AttendanceService) GetBatchRegister(ctx context.Context, batchID int64, date string) ([]store.AttendanceRegisterRow, error) {
+	if batchID <= 0 {
+		return nil, store.ErrInvalidID
+	}
+
+	attendanceDate, err := parseAttendanceDate(date)
+	if err != nil {
+		return nil, err
+	}
+
+	batch, err := s.store.Batches.GetByID(ctx, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	if !isBatchWeekday(attendanceDate, batch.Weekdays) {
+		return nil, ErrAttendanceNotBatchDay
+	}
+
+	return s.store.Attendance.GetBatchRegister(ctx, batchID, attendanceDate)
+}

@@ -19,7 +19,23 @@ export type CreateStudentPayload = {
 type StudentsResponse = {
   data: {
     data: StudentWithUser[];
+    total: number;
+    page: number;
+    page_size: number;
   };
+};
+
+export type GetStudentsParams = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+};
+
+export type GetStudentsResult = {
+  students: StudentWithUser[];
+  total: number;
+  page: number;
+  pageSize: number;
 };
 
 type StudentResponse = {
@@ -29,14 +45,25 @@ type StudentResponse = {
 };
 
 export const getStudents = createAsyncThunk<
-  StudentWithUser[],
-  void,
+  GetStudentsResult,
+  GetStudentsParams | undefined,
   { rejectValue: string }
->("students/getAll", async (_, thunkAPI) => {
+>("students/getAll", async (params, thunkAPI) => {
   try {
-    const response = await api.get<StudentsResponse>("/students");
+    const response = await api.get<StudentsResponse>("/students", {
+      params: {
+        page: params?.page ?? 1,
+        page_size: params?.pageSize ?? 20,
+        search: params?.search || undefined,
+      },
+    });
 
-    return response.data.data.data;
+    return {
+      students: response.data.data.data,
+      total: response.data.data.total,
+      page: response.data.data.page,
+      pageSize: response.data.data.page_size,
+    };
   } catch (error) {
     if (axios.isAxiosError(error)) {
       return thunkAPI.rejectWithValue(
