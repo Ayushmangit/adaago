@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import {
   CalendarDays,
   CheckCircle2,
@@ -56,114 +56,154 @@ function StudentFeesPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-64 items-center justify-center">
-        <p className="text-sm text-gray-500">Loading fees...</p>
-      </div>
+      <PageState
+        icon={<ReceiptIndianRupee size={23} />}
+        title="Loading fees..."
+      />
     );
   }
 
   return (
-    <section className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900">My Fees</h1>
+    <div className="space-y-6">
+      <header>
+        <p className="text-sm font-semibold text-emerald-700">Payments</p>
 
-        <p className="mt-1 text-sm text-gray-500">
-          View your monthly fee dues and payment history.
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+          My Fees
+        </h1>
+
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+          View your monthly Adaa Farms fee dues and payment history.
         </p>
-      </div>
+      </header>
 
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <SummaryCard
           title="Outstanding"
           value={formatMoney(summary.outstandingAmount)}
           subtitle="Amount currently due"
-          icon={<IndianRupee size={20} />}
+          icon={<IndianRupee size={19} />}
+          variant="primary"
         />
 
         <SummaryCard
-          title="Pending Dues"
+          title="Pending dues"
           value={String(summary.pending)}
           subtitle="Pending or partial"
-          icon={<Clock3 size={20} />}
+          icon={<Clock3 size={19} />}
+          variant="pending"
         />
 
         <SummaryCard
-          title="Paid Dues"
+          title="Paid dues"
           value={String(summary.paid)}
           subtitle="Completed payments"
-          icon={<CheckCircle2 size={20} />}
+          icon={<CheckCircle2 size={19} />}
+          variant="paid"
         />
 
         <SummaryCard
-          title="Total Paid"
+          title="Total paid"
           value={formatMoney(summary.paidAmount)}
           subtitle="Recorded payments"
-          icon={<ReceiptIndianRupee size={20} />}
+          icon={<ReceiptIndianRupee size={19} />}
+          variant="primary"
         />
-      </div>
+      </section>
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-        <div className="border-b border-gray-200 px-5 py-4">
-          <h2 className="font-semibold text-gray-900">Fee History</h2>
+      {summary.pending === 0 && fees.length > 0 && (
+        <section className="flex items-start gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 sm:p-5">
+          <div className="rounded-xl bg-white p-2 text-emerald-700 shadow-sm">
+            <CheckCircle2 size={18} />
+          </div>
 
-          <p className="mt-1 text-sm text-gray-500">
-            Monthly fees for your enrollments.
-          </p>
+          <div>
+            <p className="text-sm font-semibold text-emerald-950">
+              No outstanding fees
+            </p>
+
+            <p className="mt-1 text-sm leading-6 text-emerald-800/70">
+              All of your currently recorded fee dues have been paid.
+            </p>
+          </div>
+        </section>
+      )}
+
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div>
+            <h2 className="font-semibold text-slate-950">Fee history</h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Monthly fees across your sports enrollments.
+            </p>
+          </div>
+
+          {fees.length > 0 && (
+            <span className="w-fit rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+              {fees.length} {fees.length === 1 ? "record" : "records"}
+            </span>
+          )}
         </div>
 
         {sortedFees.length === 0 ? (
-          <div className="px-5 py-12 text-center">
-            <ReceiptIndianRupee size={32} className="mx-auto text-gray-300" />
-
-            <p className="mt-3 text-sm font-medium text-gray-700">
-              No fee records
-            </p>
-
-            <p className="mt-1 text-sm text-gray-500">
-              Your fee records will appear here once generated.
-            </p>
-          </div>
+          <PageState
+            icon={<ReceiptIndianRupee size={23} />}
+            title="No fee records"
+            description="Your fee records will appear here once they are generated by the administration."
+          />
         ) : (
           <>
             <div className="hidden overflow-x-auto md:block">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+              <table className="w-full min-w-[850px] text-left">
+                <thead className="border-b border-slate-100 bg-slate-50/80">
                   <tr>
-                    <th className="px-5 py-3 font-medium">Month</th>
-                    <th className="px-5 py-3 font-medium">Program</th>
-                    <th className="px-5 py-3 font-medium">Batch</th>
-                    <th className="px-5 py-3 font-medium">Due Date</th>
-                    <th className="px-5 py-3 font-medium">Amount</th>
-                    <th className="px-5 py-3 font-medium">Status</th>
+                    <TableHeader>Month</TableHeader>
+                    <TableHeader>Program</TableHeader>
+                    <TableHeader>Batch</TableHeader>
+                    <TableHeader>Due date</TableHeader>
+                    <TableHeader>Amount</TableHeader>
+                    <TableHeader>Status</TableHeader>
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-slate-100">
                   {sortedFees.map((fee) => (
-                    <tr key={fee.id} className="hover:bg-gray-50">
-                      <td className="px-5 py-4 font-medium text-gray-900">
-                        {formatMonth(fee.billing_month)}
+                    <tr
+                      key={fee.id}
+                      className="transition hover:bg-slate-50/70"
+                    >
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                            <CalendarDays size={16} />
+                          </div>
+
+                          <p className="text-sm font-semibold text-slate-900">
+                            {formatMonth(fee.billing_month)}
+                          </p>
+                        </div>
                       </td>
 
-                      <td className="px-5 py-4 text-gray-600">
+                      <td className="px-5 py-4 text-sm text-slate-600">
                         {fee.program_name}
                       </td>
 
-                      <td className="px-5 py-4 text-gray-600">
+                      <td className="px-5 py-4 text-sm text-slate-600">
                         {fee.batch_name}
                       </td>
 
-                      <td className="px-5 py-4 text-gray-600">
+                      <td className="px-5 py-4 text-sm text-slate-600">
                         {formatDate(fee.due_date)}
                       </td>
 
-                      <td className="px-5 py-4 font-medium text-gray-900">
+                      <td className="px-5 py-4 text-sm font-semibold text-slate-950">
                         {formatMoney(fee.amount_paise)}
                       </td>
 
@@ -176,65 +216,128 @@ function StudentFeesPage() {
               </table>
             </div>
 
-            <div className="divide-y divide-gray-100 md:hidden">
+            <div className="divide-y divide-slate-100 md:hidden">
               {sortedFees.map((fee) => (
-                <div key={fee.id} className="space-y-3 p-4">
+                <article key={fee.id} className="p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {formatMonth(fee.billing_month)}
-                      </p>
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                        <CalendarDays size={18} />
+                      </div>
 
-                      <p className="mt-1 text-sm text-gray-500">
-                        {fee.program_name} · {fee.batch_name}
-                      </p>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-950">
+                          {formatMonth(fee.billing_month)}
+                        </p>
+
+                        <p className="mt-0.5 truncate text-xs text-slate-500">
+                          {fee.program_name}
+                        </p>
+                      </div>
                     </div>
 
                     <StatusBadge status={fee.status} />
                   </div>
 
-                  <div className="flex items-end justify-between">
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <CalendarDays size={15} />
-                      Due {formatDate(fee.due_date)}
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <MobileInfo label="Batch" value={fee.batch_name} />
+
+                    <MobileInfo
+                      label="Due date"
+                      value={formatDate(fee.due_date)}
+                    />
+                  </div>
+
+                  <div className="mt-4 flex items-end justify-between gap-4 border-t border-slate-100 pt-4">
+                    <div>
+                      <p className="text-xs text-slate-400">Fee amount</p>
+
+                      <p className="mt-1 text-lg font-semibold tracking-tight text-slate-950">
+                        {formatMoney(fee.amount_paise)}
+                      </p>
                     </div>
 
-                    <p className="font-semibold text-gray-900">
-                      {formatMoney(fee.amount_paise)}
-                    </p>
+                    {fee.status === "paid" && (
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+                        <CheckCircle2 size={15} />
+                        Payment recorded
+                      </div>
+                    )}
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           </>
         )}
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
+
+type SummaryVariant = "primary" | "pending" | "paid";
 
 function SummaryCard({
   title,
   value,
   subtitle,
   icon,
+  variant,
 }: {
   title: string;
   value: string;
   subtitle: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
+  variant: SummaryVariant;
 }) {
+  const iconStyles: Record<SummaryVariant, string> = {
+    primary: "bg-emerald-50 text-emerald-700",
+    pending: "bg-amber-50 text-amber-700",
+    paid: "bg-emerald-50 text-emerald-700",
+  };
+
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-gray-500">{title}</p>
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-slate-500 sm:text-sm">
+            {title}
+          </p>
 
-        <div className="rounded-lg bg-gray-100 p-2 text-gray-600">{icon}</div>
+          <p className="mt-1 truncate text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">
+            {value}
+          </p>
+
+          <p className="mt-1 hidden text-xs text-slate-400 sm:block">
+            {subtitle}
+          </p>
+        </div>
+
+        <div className={`shrink-0 rounded-xl p-2.5 ${iconStyles[variant]}`}>
+          {icon}
+        </div>
       </div>
+    </div>
+  );
+}
 
-      <p className="mt-4 text-2xl font-semibold text-gray-900">{value}</p>
+function TableHeader({ children }: { children: ReactNode }) {
+  return (
+    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+      {children}
+    </th>
+  );
+}
 
-      <p className="mt-1 text-xs text-gray-500">{subtitle}</p>
+function MobileInfo({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-3">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+
+      <p className="mt-1 truncate text-sm font-semibold text-slate-700">
+        {value}
+      </p>
     </div>
   );
 }
@@ -243,16 +346,44 @@ function StatusBadge({ status }: { status: FeeDueStatus }) {
   const styles: Record<FeeDueStatus, string> = {
     pending: "bg-amber-50 text-amber-700 ring-amber-600/20",
     partial: "bg-blue-50 text-blue-700 ring-blue-600/20",
-    paid: "bg-green-50 text-green-700 ring-green-600/20",
-    cancelled: "bg-gray-100 text-gray-600 ring-gray-500/20",
+    paid: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+    cancelled: "bg-slate-100 text-slate-600 ring-slate-500/20",
   };
 
   return (
     <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ring-1 ring-inset ${styles[status]}`}
+      className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 ring-inset ${styles[status]}`}
     >
       {status}
     </span>
+  );
+}
+
+function PageState({
+  icon,
+  title,
+  description,
+}: {
+  icon: ReactNode;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className="flex min-h-56 items-center justify-center p-10 text-center sm:p-12">
+      <div>
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+          {icon}
+        </div>
+
+        <p className="mt-4 font-semibold text-slate-800">{title}</p>
+
+        {description && (
+          <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-slate-500">
+            {description}
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 

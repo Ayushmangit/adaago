@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Check,
   ChevronLeft,
   ChevronRight,
+  IndianRupee,
   Plus,
+  ReceiptIndianRupee,
   Search,
+  WalletCards,
   X,
 } from "lucide-react";
 
@@ -50,16 +53,16 @@ function formatDate(value: string) {
 function statusClasses(status: FeeDueStatus) {
   switch (status) {
     case "paid":
-      return "bg-green-100 text-green-700";
+      return "bg-emerald-50 text-emerald-700";
 
     case "pending":
-      return "bg-yellow-100 text-yellow-700";
+      return "bg-amber-50 text-amber-700";
 
     case "partial":
-      return "bg-blue-100 text-blue-700";
+      return "bg-blue-50 text-blue-700";
 
     case "cancelled":
-      return "bg-gray-100 text-gray-600";
+      return "bg-slate-100 text-slate-600";
   }
 }
 
@@ -122,6 +125,38 @@ function FeesPage() {
   const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
 
   const end = Math.min(page * pageSize, total);
+
+  const visibleSummary = useMemo(() => {
+    let pending = 0;
+    let paid = 0;
+    let partial = 0;
+    let amount = 0;
+
+    for (const fee of fees) {
+      amount += fee.amount_paise;
+
+      switch (fee.status) {
+        case "pending":
+          pending++;
+          break;
+
+        case "paid":
+          paid++;
+          break;
+
+        case "partial":
+          partial++;
+          break;
+      }
+    }
+
+    return {
+      pending,
+      paid,
+      partial,
+      amount,
+    };
+  }, [fees]);
 
   function handleMonthChange(value: string) {
     setMonth(value);
@@ -222,300 +257,361 @@ function FeesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Fees</h1>
-
-          <p className="mt-1 text-sm text-gray-500">
-            Manage monthly student fees and payment status.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={openGenerateModal}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 text-sm font-medium text-white hover:bg-gray-800"
-        >
-          <Plus size={16} />
-          Generate Monthly Fees
-        </button>
-      </div>
-
-      <div className="rounded-xl border border-gray-200 bg-white p-4">
-        <div className="flex flex-col gap-3 lg:flex-row">
+    <>
+      <div className="space-y-6">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">
-              Billing month
-            </label>
+            <p className="text-sm font-semibold text-emerald-700">
+              Financial Management
+            </p>
 
-            <input
-              type="month"
-              value={month}
-              onChange={(e) => handleMonthChange(e.target.value)}
-              className="h-10 rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-gray-500"
-            />
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+              Fees
+            </h1>
+
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              Manage monthly student fees and payment status across Adaa Farms
+              programs.
+            </p>
           </div>
 
-          <div className="flex-1">
-            <label className="mb-1 block text-xs font-medium text-gray-600">
-              Search
-            </label>
+          <button
+            type="button"
+            onClick={openGenerateModal}
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-900 px-4 text-sm font-semibold text-white transition hover:bg-emerald-800 sm:w-auto"
+          >
+            <Plus size={17} />
+            Generate monthly fees
+          </button>
+        </header>
 
-            <div className="relative">
-              <Search
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <SummaryCard
+            label="Visible dues"
+            value={fees.length}
+            icon={<ReceiptIndianRupee size={18} />}
+          />
 
+          <SummaryCard
+            label="Pending"
+            value={visibleSummary.pending}
+            icon={<WalletCards size={18} />}
+          />
+
+          <SummaryCard
+            label="Paid"
+            value={visibleSummary.paid}
+            icon={<Check size={18} />}
+          />
+
+          <SummaryCard
+            label="Visible value"
+            value={formatCurrency(visibleSummary.amount)}
+            icon={<IndianRupee size={18} />}
+          />
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="grid gap-4 md:grid-cols-[180px_minmax(0,1fr)_180px]">
+            <FilterField label="Billing month">
               <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search student, batch or program..."
-                className="h-10 w-full rounded-lg border border-gray-300 pl-9 pr-3 text-sm outline-none focus:border-gray-500"
+                type="month"
+                value={month}
+                onChange={(event) => handleMonthChange(event.target.value)}
+                className={inputClass}
               />
+            </FilterField>
+
+            <FilterField label="Search">
+              <div className="relative">
+                <Search
+                  size={16}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search student, batch or program..."
+                  className={searchClass}
+                />
+              </div>
+            </FilterField>
+
+            <FilterField label="Status">
+              <select
+                value={status}
+                onChange={(event) =>
+                  handleStatusChange(event.target.value as FeeDueStatus | "")
+                }
+                className={inputClass}
+              >
+                <option value="">All statuses</option>
+                <option value="pending">Pending</option>
+                <option value="paid">Paid</option>
+                <option value="partial">Partial</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </FilterField>
+          </div>
+        </section>
+
+        {error && <ErrorBox message={error} />}
+
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-4 py-4 sm:px-5">
+            <div>
+              <h2 className="font-semibold text-slate-950">Fee register</h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                {total} {total === 1 ? "fee due" : "fee dues"} found
+              </p>
             </div>
+
+            {visibleSummary.partial > 0 && (
+              <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                {visibleSummary.partial} partial
+              </span>
+            )}
           </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">
-              Status
-            </label>
+          {loading ? (
+            <EmptyState
+              icon={<ReceiptIndianRupee size={23} />}
+              title="Loading fees..."
+            />
+          ) : fees.length === 0 ? (
+            <EmptyState
+              icon={<ReceiptIndianRupee size={23} />}
+              title="No fees found"
+              description="There are no fee dues matching these filters."
+            />
+          ) : (
+            <>
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full min-w-[950px] text-left">
+                  <thead className="border-b border-slate-100 bg-slate-50/80">
+                    <tr>
+                      <TableHeader>Student</TableHeader>
+                      <TableHeader>Program</TableHeader>
+                      <TableHeader>Batch</TableHeader>
+                      <TableHeader>Due date</TableHeader>
+                      <TableHeader>Amount</TableHeader>
+                      <TableHeader>Status</TableHeader>
+                      <TableHeader align="right">Action</TableHeader>
+                    </tr>
+                  </thead>
 
-            <select
-              value={status}
-              onChange={(e) =>
-                handleStatusChange(e.target.value as FeeDueStatus | "")
-              }
-              className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:border-gray-500"
-            >
-              <option value="">All statuses</option>
-              <option value="pending">Pending</option>
-              <option value="paid">Paid</option>
-              <option value="partial">Partial</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase text-gray-500">
-              <tr>
-                <th className="px-5 py-3 font-medium">Student</th>
-
-                <th className="px-5 py-3 font-medium">Program</th>
-
-                <th className="px-5 py-3 font-medium">Batch</th>
-
-                <th className="px-5 py-3 font-medium">Due Date</th>
-
-                <th className="px-5 py-3 font-medium">Amount</th>
-
-                <th className="px-5 py-3 font-medium">Status</th>
-
-                <th className="px-5 py-3 text-right font-medium">Action</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-gray-100">
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-5 py-12 text-center text-gray-500"
-                  >
-                    Loading fees...
-                  </td>
-                </tr>
-              ) : fees.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center">
-                    <p className="font-medium text-gray-700">No fees found</p>
-
-                    <p className="mt-1 text-sm text-gray-500">
-                      There are no fee dues matching these filters.
-                    </p>
-                  </td>
-                </tr>
-              ) : (
-                fees.map((fee) => (
-                  <tr key={fee.id} className="hover:bg-gray-50">
-                    <td className="px-5 py-4">
-                      <div className="font-medium text-gray-900">
-                        {fee.student_name}
-                      </div>
-
-                      <div className="mt-0.5 text-xs text-gray-400">
-                        Student #{fee.student_id}
-                      </div>
-                    </td>
-
-                    <td className="px-5 py-4 text-gray-700">
-                      {fee.program_name}
-                    </td>
-
-                    <td className="px-5 py-4 text-gray-700">
-                      {fee.batch_name}
-                    </td>
-
-                    <td className="px-5 py-4 text-gray-600">
-                      {formatDate(fee.due_date)}
-                    </td>
-
-                    <td className="px-5 py-4 font-medium text-gray-900">
-                      {formatCurrency(fee.amount_paise)}
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${statusClasses(
-                          fee.status,
-                        )}`}
+                  <tbody className="divide-y divide-slate-100">
+                    {fees.map((fee) => (
+                      <tr
+                        key={fee.id}
+                        className="transition hover:bg-slate-50/70"
                       >
-                        {fee.status}
-                      </span>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <StudentAvatar name={fee.student_name} />
 
-                      {fee.status === "paid" && fee.paid_at && (
-                        <div className="mt-1 text-xs text-gray-400">
-                          Paid {formatDate(fee.paid_at)}
+                            <p className="text-sm font-semibold text-slate-900">
+                              {fee.student_name}
+                            </p>
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-4 text-sm text-slate-600">
+                          {fee.program_name}
+                        </td>
+
+                        <td className="px-5 py-4 text-sm text-slate-600">
+                          {fee.batch_name}
+                        </td>
+
+                        <td className="px-5 py-4 text-sm text-slate-600">
+                          {formatDate(fee.due_date)}
+                        </td>
+
+                        <td className="px-5 py-4 text-sm font-semibold text-slate-950">
+                          {formatCurrency(fee.amount_paise)}
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <FeeStatus fee={fee} />
+                        </td>
+
+                        <td className="px-5 py-4 text-right">
+                          {fee.status === "pending" ? (
+                            <button
+                              type="button"
+                              onClick={() => openPaidModal(fee)}
+                              disabled={markingPaidID === fee.id}
+                              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <Check size={14} />
+
+                              {markingPaidID === fee.id
+                                ? "Saving..."
+                                : "Mark paid"}
+                            </button>
+                          ) : (
+                            <span className="text-xs text-slate-400">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="divide-y divide-slate-100 md:hidden">
+                {fees.map((fee) => (
+                  <article key={fee.id} className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <StudentAvatar name={fee.student_name} />
+
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-slate-950">
+                            {fee.student_name}
+                          </p>
+
+                          <p className="mt-0.5 truncate text-xs text-slate-500">
+                            {fee.program_name}
+                          </p>
                         </div>
-                      )}
-                    </td>
+                      </div>
 
-                    <td className="px-5 py-4 text-right">
-                      {fee.status === "pending" ? (
+                      <FeeStatus fee={fee} />
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <MobileInfo label="Batch" value={fee.batch_name} />
+
+                      <MobileInfo
+                        label="Due date"
+                        value={formatDate(fee.due_date)}
+                      />
+                    </div>
+
+                    <div className="mt-4 flex items-end justify-between gap-4 border-t border-slate-100 pt-4">
+                      <div>
+                        <p className="text-xs text-slate-400">Amount</p>
+
+                        <p className="mt-1 text-lg font-semibold text-slate-950">
+                          {formatCurrency(fee.amount_paise)}
+                        </p>
+                      </div>
+
+                      {fee.status === "pending" && (
                         <button
                           type="button"
                           onClick={() => openPaidModal(fee)}
                           disabled={markingPaidID === fee.id}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:opacity-50"
                         >
                           <Check size={14} />
-
-                          {markingPaidID === fee.id ? "Saving..." : "Mark Paid"}
+                          Mark paid
                         </button>
-                      ) : (
-                        <span className="text-xs text-gray-400">—</span>
                       )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </>
+          )}
 
-        <div className="flex flex-col gap-3 border-t border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-gray-500">
-            Showing {start}-{end} of {total}
-          </p>
+          <div className="flex flex-col gap-4 border-t border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <p className="text-center text-sm text-slate-500 sm:text-left">
+              Showing {start}-{end} of {total}
+            </p>
 
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              disabled={currentPage <= 1 || loading}
-              onClick={() => setCurrentPage((current) => current - 1)}
-              className="inline-flex h-9 items-center gap-1 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <ChevronLeft size={16} />
-              Previous
-            </button>
+            <div className="flex items-center justify-between gap-2 sm:justify-end">
+              <button
+                type="button"
+                disabled={currentPage <= 1 || loading}
+                onClick={() => setCurrentPage((current) => current - 1)}
+                className={paginationButtonClass}
+              >
+                <ChevronLeft size={16} />
+                <span className="hidden sm:inline">Previous</span>
+              </button>
 
-            <span className="text-sm text-gray-500">
-              Page {page} of {totalPages}
-            </span>
+              <span className="px-2 text-sm text-slate-500">
+                {page} / {totalPages}
+              </span>
 
-            <button
-              type="button"
-              disabled={currentPage >= totalPages || loading}
-              onClick={() => setCurrentPage((current) => current + 1)}
-              className="inline-flex h-9 items-center gap-1 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Next
-              <ChevronRight size={16} />
-            </button>
+              <button
+                type="button"
+                disabled={currentPage >= totalPages || loading}
+                onClick={() => setCurrentPage((current) => current + 1)}
+                className={paginationButtonClass}
+              >
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
-        </div>
+        </section>
       </div>
 
       {selectedFee && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
-              <div>
-                <h2 className="font-semibold text-gray-900">
-                  Mark fee as paid
-                </h2>
+        <ModalOverlay>
+          <ModalCard>
+            <ModalHeader
+              title="Mark fee as paid"
+              description="Confirm that payment has been received."
+              onClose={closePaidModal}
+              disabled={markingPaidID !== null}
+            />
 
-                <p className="mt-0.5 text-sm text-gray-500">
-                  Confirm payment received from student.
+            <div className="space-y-5 p-5 sm:p-6">
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="font-semibold text-emerald-950">
+                      {selectedFee.student_name}
+                    </p>
+
+                    <p className="mt-1 text-sm text-emerald-800/70">
+                      {selectedFee.program_name} · {selectedFee.batch_name}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-white/80 p-2 text-emerald-700">
+                    <IndianRupee size={18} />
+                  </div>
+                </div>
+
+                <p className="mt-5 text-2xl font-semibold tracking-tight text-emerald-950">
+                  {formatCurrency(selectedFee.amount_paise)}
+                </p>
+
+                <p className="mt-1 text-xs text-emerald-700">
+                  Due {formatDate(selectedFee.due_date)}
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={closePaidModal}
-                disabled={markingPaidID !== null}
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="space-y-4 p-5">
-              <div className="rounded-lg bg-gray-50 p-4">
-                <div className="font-medium text-gray-900">
-                  {selectedFee.student_name}
-                </div>
-
-                <div className="mt-1 text-sm text-gray-500">
-                  {selectedFee.program_name} · {selectedFee.batch_name}
-                </div>
-
-                <div className="mt-3 text-xl font-semibold text-gray-900">
-                  {formatCurrency(selectedFee.amount_paise)}
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Payment note
-                </label>
-
+              <FilterField label="Payment note">
                 <textarea
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  onChange={(event) => setNotes(event.target.value)}
                   rows={3}
-                  placeholder="Example: Paid via UPI"
-                  className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-500"
+                  placeholder="e.g. Paid via UPI"
+                  className={textareaClass}
                 />
 
-                <p className="mt-1 text-xs text-gray-400">Optional</p>
-              </div>
+                <p className="mt-1.5 text-xs text-slate-400">Optional</p>
+              </FilterField>
 
-              {markPaidError && (
-                <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {markPaidError}
-                </div>
-              )}
+              {markPaidError && <ErrorBox message={markPaidError} />}
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-gray-200 px-5 py-4">
+            <ModalActions>
               <button
                 type="button"
                 onClick={closePaidModal}
                 disabled={markingPaidID !== null}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                className={secondaryButtonClass}
               >
                 Cancel
               </button>
@@ -524,99 +620,73 @@ function FeesPage() {
                 type="button"
                 onClick={handleMarkPaid}
                 disabled={markingPaidID !== null}
-                className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                className={primaryButtonClass}
               >
                 <Check size={16} />
 
-                {markingPaidID !== null ? "Saving..." : "Mark Paid"}
+                {markingPaidID !== null ? "Saving..." : "Confirm payment"}
               </button>
-            </div>
-          </div>
-        </div>
+            </ModalActions>
+          </ModalCard>
+        </ModalOverlay>
       )}
 
       {generateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
-              <div>
-                <h2 className="font-semibold text-gray-900">
-                  Generate Monthly Fees
-                </h2>
+        <ModalOverlay>
+          <ModalCard>
+            <ModalHeader
+              title="Generate monthly fees"
+              description="Create fee dues for currently enrolled students."
+              onClose={closeGenerateModal}
+              disabled={generating}
+            />
 
-                <p className="mt-0.5 text-sm text-gray-500">
-                  Create fee dues for enrolled students.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                disabled={generating}
-                onClick={closeGenerateModal}
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="space-y-4 p-5">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Billing month
-                </label>
-
+            <div className="space-y-5 p-5 sm:p-6">
+              <FilterField label="Billing month">
                 <input
                   type="month"
                   value={generateMonth}
                   disabled={generating}
-                  onChange={(e) => {
-                    setGenerateMonth(e.target.value);
+                  onChange={(event) => {
+                    setGenerateMonth(event.target.value);
                     setGenerateMessage("");
                   }}
-                  className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-gray-500 disabled:bg-gray-100"
+                  className={inputClass}
                 />
-              </div>
+              </FilterField>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Due date
-                </label>
-
+              <FilterField label="Due date">
                 <input
                   type="date"
                   value={dueDate}
                   disabled={generating}
-                  onChange={(e) => {
-                    setDueDate(e.target.value);
+                  onChange={(event) => {
+                    setDueDate(event.target.value);
                     setGenerateMessage("");
                   }}
-                  className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-gray-500 disabled:bg-gray-100"
+                  className={inputClass}
                 />
+              </FilterField>
+
+              <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
+                Existing fee dues for this billing month will not be duplicated.
               </div>
 
-              <div className="rounded-lg bg-gray-50 p-3 text-sm text-gray-600">
-                Existing fee dues for this month will not be duplicated.
-              </div>
-
-              {generateError && (
-                <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {generateError}
-                </div>
-              )}
+              {generateError && <ErrorBox message={generateError} />}
 
               {generateMessage && (
-                <div className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                   {generateMessage}
                 </div>
               )}
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-gray-200 px-5 py-4">
+            <ModalActions>
               <button
                 type="button"
                 disabled={generating}
                 onClick={closeGenerateModal}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                className={secondaryButtonClass}
               >
                 Close
               </button>
@@ -625,18 +695,239 @@ function FeesPage() {
                 type="button"
                 disabled={generating || !generateMonth || !dueDate}
                 onClick={handleGenerateFees}
-                className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                className={primaryButtonClass}
               >
                 <Plus size={16} />
 
-                {generating ? "Generating..." : "Generate Fees"}
+                {generating ? "Generating..." : "Generate fees"}
               </button>
-            </div>
-          </div>
+            </ModalActions>
+          </ModalCard>
+        </ModalOverlay>
+      )}
+    </>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: ReactNode;
+  icon: ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-slate-500">{label}</p>
+
+          <p className="mt-1 truncate text-xl font-semibold text-slate-950 sm:text-2xl">
+            {value}
+          </p>
         </div>
+
+        <div className="shrink-0 rounded-xl bg-emerald-50 p-2.5 text-emerald-700">
+          {icon}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StudentAvatar({ name }: { name: string }) {
+  return (
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-xs font-bold text-emerald-800">
+      {getInitials(name)}
+    </div>
+  );
+}
+
+function FeeStatus({ fee }: { fee: FeeDueWithDetails }) {
+  return (
+    <div>
+      <span
+        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${statusClasses(
+          fee.status,
+        )}`}
+      >
+        {fee.status}
+      </span>
+
+      {fee.status === "paid" && fee.paid_at && (
+        <p className="mt-1 text-xs text-slate-400">
+          Paid {formatDate(fee.paid_at)}
+        </p>
       )}
     </div>
   );
+}
+
+function MobileInfo({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-3">
+      <p className="text-xs text-slate-400">{label}</p>
+
+      <p className="mt-1 truncate text-sm font-medium text-slate-700">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function FilterField({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-slate-700">
+        {label}
+      </label>
+
+      {children}
+    </div>
+  );
+}
+
+function TableHeader({
+  children,
+  align = "left",
+}: {
+  children: ReactNode;
+  align?: "left" | "right";
+}) {
+  return (
+    <th
+      className={`px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 ${
+        align === "right" ? "text-right" : ""
+      }`}
+    >
+      {children}
+    </th>
+  );
+}
+
+function EmptyState({
+  icon,
+  title,
+  description,
+}: {
+  icon: ReactNode;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className="p-10 text-center sm:p-12">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+        {icon}
+      </div>
+
+      <p className="mt-4 font-semibold text-slate-800">{title}</p>
+
+      {description && (
+        <p className="mt-1 text-sm text-slate-500">{description}</p>
+      )}
+    </div>
+  );
+}
+
+function ErrorBox({ message }: { message: string }) {
+  return (
+    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {message}
+    </div>
+  );
+}
+
+function ModalOverlay({ children }: { children: ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-emerald-950/30 backdrop-blur-sm sm:items-center sm:p-4">
+      {children}
+    </div>
+  );
+}
+
+function ModalCard({ children }: { children: ReactNode }) {
+  return (
+    <div className="max-h-[94vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:max-w-md sm:rounded-2xl">
+      {children}
+    </div>
+  );
+}
+
+function ModalHeader({
+  title,
+  description,
+  onClose,
+  disabled,
+}: {
+  title: string;
+  description: string;
+  onClose: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-5 sm:px-6">
+      <div>
+        <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
+
+        <p className="mt-1 text-sm leading-5 text-slate-500">{description}</p>
+      </div>
+
+      <button
+        type="button"
+        onClick={onClose}
+        disabled={disabled}
+        className="shrink-0 rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-40"
+      >
+        <X size={19} />
+      </button>
+    </div>
+  );
+}
+
+function ModalActions({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex flex-col-reverse gap-2 border-t border-slate-100 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+      {children}
+    </div>
+  );
+}
+
+const inputClass =
+  "h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition focus:border-emerald-700 focus:ring-4 focus:ring-emerald-700/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
+
+const searchClass =
+  "h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-700 focus:bg-white focus:ring-4 focus:ring-emerald-700/10";
+
+const textareaClass =
+  "w-full resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-700 focus:ring-4 focus:ring-emerald-700/10";
+
+const secondaryButtonClass =
+  "inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50";
+
+const primaryButtonClass =
+  "inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-900 px-4 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50";
+
+const paginationButtonClass =
+  "inline-flex h-9 items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40";
+
+function getInitials(name: string) {
+  const values = name.trim().split(/\s+/);
+
+  if (values.length === 0 || !values[0]) return "ST";
+
+  if (values.length === 1) {
+    return values[0].slice(0, 2).toUpperCase();
+  }
+
+  return (values[0][0] + values[values.length - 1][0]).toUpperCase();
 }
 
 export default FeesPage;

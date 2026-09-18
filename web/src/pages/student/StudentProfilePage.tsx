@@ -1,17 +1,8 @@
-import {
-  CalendarDays,
-  Mail,
-  MapPin,
-  Phone,
-  Shield,
-  User,
-  Users,
-} from "lucide-react";
+import { CalendarDays, Mail, MapPin, Phone, User, Users } from "lucide-react";
 
 import { useEffect, type ReactNode } from "react";
 
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-
 import { getMyProfile } from "../../features/students/studentThunks";
 
 function StudentProfilePage() {
@@ -27,15 +18,13 @@ function StudentProfilePage() {
 
   if (profileLoading) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-10 text-center text-sm text-gray-500">
-        Loading profile...
-      </div>
+      <PageState icon={<User size={22} />} message="Loading your profile..." />
     );
   }
 
   if (profileError) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
         {profileError}
       </div>
     );
@@ -43,58 +32,75 @@ function StudentProfilePage() {
 
   if (!profile) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-10 text-center text-sm text-gray-500">
-        Profile information is unavailable.
-      </div>
+      <PageState
+        icon={<User size={22} />}
+        message="Profile information is unavailable."
+      />
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900">My Profile</h1>
-
-        <p className="mt-1 text-sm text-gray-500">
-          View your personal and account information.
+      <header>
+        <p className="text-sm font-semibold text-emerald-700">
+          Student Account
         </p>
-      </div>
 
-      {/* Profile header */}
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+          My Profile
+        </h1>
 
-      <section className="rounded-xl border border-gray-200 bg-white p-6">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gray-900 text-lg font-semibold text-white">
-            {getInitials(profile.full_name)}
-          </div>
+        <p className="mt-2 text-sm leading-6 text-slate-500">
+          Your personal and account information registered with Adaa Farms.
+        </p>
+      </header>
 
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-3">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {profile.full_name}
-              </h2>
+      <section className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="h-24 bg-emerald-950 sm:h-28" />
 
-              <StatusBadge status={profile.status} />
+        <div className="px-4 pb-5 sm:px-6 sm:pb-6">
+          <div className="-mt-10 flex flex-col gap-4 sm:-mt-9 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border-4 border-white bg-emerald-100 text-xl font-bold text-emerald-900 shadow-sm">
+                {getInitials(profile.full_name)}
+              </div>
+
+              <div className="pb-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-xl font-semibold text-slate-950 sm:text-2xl">
+                    {profile.full_name}
+                  </h2>
+
+                  <StatusBadge status={profile.status} />
+                </div>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  @{profile.username}
+                </p>
+              </div>
             </div>
 
-            <p className="mt-1 text-sm text-gray-500">@{profile.username}</p>
+            <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2.5 sm:mb-1">
+              <CalendarDays size={16} className="shrink-0 text-emerald-700" />
 
-            <p className="mt-2 text-xs text-gray-400">
-              Student ID: {profile.id}
-            </p>
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  Joined Adaa Farms
+                </p>
+
+                <p className="text-sm font-semibold text-slate-700">
+                  {formatDate(profile.joined_at)}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Account + personal */}
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        {/* Account */}
-
+      <div className="grid gap-5 xl:grid-cols-2">
         <Section
-          title="Account Information"
-          description="Your login and account details."
+          title="Account information"
+          description="The details associated with your login."
         >
           <InfoRow
             icon={<User size={18} />}
@@ -104,14 +110,8 @@ function StudentProfilePage() {
 
           <InfoRow
             icon={<Mail size={18} />}
-            label="Email"
+            label="Email address"
             value={profile.email}
-          />
-
-          <InfoRow
-            icon={<Shield size={18} />}
-            label="Role"
-            value={capitalize(profile.role)}
           />
 
           <InfoRow
@@ -121,15 +121,13 @@ function StudentProfilePage() {
           />
         </Section>
 
-        {/* Personal */}
-
         <Section
-          title="Personal Information"
-          description="Personal details registered with the sports complex."
+          title="Personal information"
+          description="Your personal details registered with Adaa Farms."
         >
           <InfoRow
             icon={<User size={18} />}
-            label="Full Name"
+            label="Full name"
             value={profile.full_name}
           />
 
@@ -141,7 +139,7 @@ function StudentProfilePage() {
 
           <InfoRow
             icon={<CalendarDays size={18} />}
-            label="Date of Birth"
+            label="Date of birth"
             value={
               profile.date_of_birth
                 ? formatDate(profile.date_of_birth)
@@ -157,48 +155,47 @@ function StudentProfilePage() {
         </Section>
       </div>
 
-      {/* Guardian */}
-
       <Section
-        title="Guardian Information"
-        description="Guardian details associated with your profile."
+        title="Guardian information"
+        description="Guardian contact details associated with your account."
       >
-        <div className="grid gap-0 md:grid-cols-2 md:gap-8">
+        <div className="grid md:grid-cols-2 md:gap-8">
           <InfoRow
             icon={<Users size={18} />}
-            label="Guardian Name"
+            label="Guardian name"
             value={profile.guardian_name ?? "Not provided"}
           />
 
           <InfoRow
             icon={<Phone size={18} />}
-            label="Guardian Phone"
+            label="Guardian phone"
             value={profile.guardian_phone ?? "Not provided"}
           />
         </div>
       </Section>
 
-      {/* Notice */}
+      <section className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 sm:p-5">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 rounded-lg bg-white p-2 text-emerald-700 shadow-sm">
+            <User size={17} />
+          </div>
 
-      <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-4">
-        <p className="text-sm font-medium text-gray-700">
-          Need to update something?
-        </p>
+          <div>
+            <h2 className="text-sm font-semibold text-emerald-950">
+              Need to update your information?
+            </h2>
 
-        <p className="mt-1 text-sm text-gray-500">
-          Profile information is managed by the sports complex administrator.
-          Contact the administration if any information is incorrect.
-        </p>
-      </div>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-emerald-800/70">
+              Student information is managed by the Adaa Farms administration.
+              Contact the administration if any of these details need to be
+              corrected.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
-
-/*
-|--------------------------------------------------------------------------
-| Section
-|--------------------------------------------------------------------------
-*/
 
 function Section({
   title,
@@ -210,23 +207,17 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-gray-200 bg-white">
-      <div className="border-b border-gray-200 px-5 py-4">
-        <h2 className="font-semibold text-gray-900">{title}</h2>
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-100 px-4 py-4 sm:px-5">
+        <h2 className="font-semibold text-slate-950">{title}</h2>
 
-        <p className="mt-1 text-sm text-gray-500">{description}</p>
+        <p className="mt-1 text-sm leading-5 text-slate-500">{description}</p>
       </div>
 
-      <div className="divide-y divide-gray-100 px-5">{children}</div>
+      <div className="divide-y divide-slate-100 px-4 sm:px-5">{children}</div>
     </section>
   );
 }
-
-/*
-|--------------------------------------------------------------------------
-| Info Row
-|--------------------------------------------------------------------------
-*/
 
 function InfoRow({
   icon,
@@ -238,15 +229,17 @@ function InfoRow({
   value: string | number;
 }) {
   return (
-    <div className="flex items-start gap-4 py-4">
-      <div className="mt-0.5 text-gray-400">{icon}</div>
+    <div className="flex items-start gap-3 py-4 sm:gap-4">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+        {icon}
+      </div>
 
-      <div className="min-w-0">
-        <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
           {label}
         </p>
 
-        <p className="mt-1 break-words text-sm font-medium text-gray-800">
+        <p className="mt-1 break-words text-sm font-semibold leading-6 text-slate-800">
           {value}
         </p>
       </div>
@@ -254,19 +247,13 @@ function InfoRow({
   );
 }
 
-/*
-|--------------------------------------------------------------------------
-| Status
-|--------------------------------------------------------------------------
-*/
-
 function StatusBadge({ status }: { status: "active" | "inactive" }) {
   return (
     <span
-      className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
+      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${
         status === "active"
-          ? "bg-green-50 text-green-700"
-          : "bg-gray-100 text-gray-600"
+          ? "bg-emerald-50 text-emerald-700"
+          : "bg-slate-100 text-slate-600"
       }`}
     >
       {status}
@@ -274,16 +261,22 @@ function StatusBadge({ status }: { status: "active" | "inactive" }) {
   );
 }
 
-/*
-|--------------------------------------------------------------------------
-| Helpers
-|--------------------------------------------------------------------------
-*/
+function PageState({ icon, message }: { icon: ReactNode; message: string }) {
+  return (
+    <div className="flex min-h-64 items-center justify-center rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+      <div className="text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+          {icon}
+        </div>
+
+        <p className="mt-4 text-sm text-slate-500">{message}</p>
+      </div>
+    </div>
+  );
+}
 
 function formatDate(value: string) {
-  if (!value) {
-    return "—";
-  }
+  if (!value) return "—";
 
   return new Intl.DateTimeFormat("en-IN", {
     day: "2-digit",
@@ -292,16 +285,12 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function capitalize(value: string) {
-  if (!value) {
-    return "";
-  }
-
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
 function getInitials(value: string) {
   const parts = value.trim().split(/\s+/);
+
+  if (parts.length === 0 || !parts[0]) {
+    return "ST";
+  }
 
   if (parts.length === 1) {
     return parts[0].slice(0, 2).toUpperCase();

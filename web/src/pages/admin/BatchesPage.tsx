@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-
 import {
   CalendarDays,
   Clock3,
@@ -9,22 +8,18 @@ import {
   Users,
   X,
 } from "lucide-react";
-
 import { Controller, useForm } from "react-hook-form";
 
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-
 import {
   createBatch,
   getBatches,
   updateBatch,
 } from "../../features/batches/batchThunks";
-
 import {
   clearCreateBatchError,
   clearUpdateBatchError,
 } from "../../features/batches/batchSlice";
-
 import { getPrograms } from "../../features/programs/programThunks";
 
 import type {
@@ -33,101 +28,38 @@ import type {
   UpdateBatchPayload,
 } from "../../features/batches/batchTypes";
 
-/*
-|--------------------------------------------------------------------------
-| Form Types
-|--------------------------------------------------------------------------
-*/
-
 type CreateBatchForm = {
   program_id: number;
   name: string;
-
   start_time: string;
   end_time: string;
-
   weekdays: number[];
-
   monthly_fee: number;
-
   capacity?: number;
 };
 
 type EditBatchForm = {
   name: string;
-
   start_time: string;
   end_time: string;
-
   weekdays: number[];
-
   monthly_fee: number;
-
   capacity?: number;
-
   is_active: boolean;
 };
 
-/*
-|--------------------------------------------------------------------------
-| Weekdays
-|--------------------------------------------------------------------------
-|
-| Frontend convention:
-|
-| 1 = Monday
-| 2 = Tuesday
-| ...
-| 7 = Sunday
-|
-|--------------------------------------------------------------------------
-*/
-
 const weekdays = [
-  {
-    value: 1,
-    label: "Mon",
-  },
-  {
-    value: 2,
-    label: "Tue",
-  },
-  {
-    value: 3,
-    label: "Wed",
-  },
-  {
-    value: 4,
-    label: "Thu",
-  },
-  {
-    value: 5,
-    label: "Fri",
-  },
-  {
-    value: 6,
-    label: "Sat",
-  },
-  {
-    value: 7,
-    label: "Sun",
-  },
+  { value: 1, label: "Mon" },
+  { value: 2, label: "Tue" },
+  { value: 3, label: "Wed" },
+  { value: 4, label: "Thu" },
+  { value: 5, label: "Fri" },
+  { value: 6, label: "Sat" },
+  { value: 7, label: "Sun" },
 ];
-
-/*
-|--------------------------------------------------------------------------
-| Page
-|--------------------------------------------------------------------------
-*/
 
 function BatchesPage() {
   const dispatch = useAppDispatch();
-
-  /*
-  |--------------------------------------------------------------------------
-  | Redux
-  |--------------------------------------------------------------------------
-  */
 
   const {
     batches,
@@ -143,33 +75,15 @@ function BatchesPage() {
     (state) => state.programs,
   );
 
-  /*
-  |--------------------------------------------------------------------------
-  | Local State
-  |--------------------------------------------------------------------------
-  */
-
   const [search, setSearch] = useState("");
-
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
-
-  /*
-  |--------------------------------------------------------------------------
-  | Create Form
-  |--------------------------------------------------------------------------
-  */
 
   const {
     register: registerCreate,
-
     handleSubmit: handleCreateSubmit,
-
     control: createControl,
-
     reset: resetCreate,
-
     formState: { errors: createFormErrors },
   } = useForm<CreateBatchForm>({
     defaultValues: {
@@ -177,21 +91,11 @@ function BatchesPage() {
     },
   });
 
-  /*
-  |--------------------------------------------------------------------------
-  | Edit Form
-  |--------------------------------------------------------------------------
-  */
-
   const {
     register: registerEdit,
-
     handleSubmit: handleEditSubmit,
-
     control: editControl,
-
     reset: resetEdit,
-
     formState: { errors: editFormErrors },
   } = useForm<EditBatchForm>({
     defaultValues: {
@@ -199,50 +103,23 @@ function BatchesPage() {
     },
   });
 
-  /*
-  |--------------------------------------------------------------------------
-  | Initial Load
-  |--------------------------------------------------------------------------
-  */
-
   useEffect(() => {
     dispatch(getBatches());
-
     dispatch(getPrograms());
   }, [dispatch]);
-
-  /*
-  |--------------------------------------------------------------------------
-  | Program Lookup
-  |--------------------------------------------------------------------------
-  */
 
   const programMap = useMemo(() => {
     return new Map(programs.map((program) => [program.id, program]));
   }, [programs]);
 
-  /*
-  |--------------------------------------------------------------------------
-  | Active Programs
-  |--------------------------------------------------------------------------
-  */
-
   const activePrograms = useMemo(() => {
     return programs.filter((program) => program.is_active);
   }, [programs]);
 
-  /*
-  |--------------------------------------------------------------------------
-  | Search
-  |--------------------------------------------------------------------------
-  */
-
   const filteredBatches = useMemo(() => {
     const query = search.trim().toLowerCase();
 
-    if (!query) {
-      return batches;
-    }
+    if (!query) return batches;
 
     return batches.filter((batch) => {
       const program = programMap.get(batch.program_id);
@@ -254,27 +131,29 @@ function BatchesPage() {
     });
   }, [batches, search, programMap]);
 
-  /*
-  |--------------------------------------------------------------------------
-  | Create Modal
-  |--------------------------------------------------------------------------
-  */
+  const activeBatchCount = useMemo(
+    () => batches.filter((batch) => batch.is_active).length,
+    [batches],
+  );
+
+  const totalCapacity = useMemo(
+    () =>
+      batches.reduce((total, batch) => {
+        return total + (batch.capacity ?? 0);
+      }, 0),
+    [batches],
+  );
 
   const openCreateModal = () => {
     dispatch(clearCreateBatchError());
 
     resetCreate({
       program_id: activePrograms[0]?.id,
-
       name: "",
-
       start_time: "",
       end_time: "",
-
       weekdays: [],
-
       monthly_fee: undefined,
-
       capacity: undefined,
     });
 
@@ -282,22 +161,12 @@ function BatchesPage() {
   };
 
   const closeCreateModal = () => {
-    if (creating) {
-      return;
-    }
+    if (creating) return;
 
     dispatch(clearCreateBatchError());
-
     resetCreate();
-
     setIsCreateModalOpen(false);
   };
-
-  /*
-  |--------------------------------------------------------------------------
-  | Edit Modal
-  |--------------------------------------------------------------------------
-  */
 
   const openEditModal = (batch: Batch) => {
     dispatch(clearUpdateBatchError());
@@ -306,51 +175,30 @@ function BatchesPage() {
 
     resetEdit({
       name: batch.name,
-
       start_time: formatTime(batch.start_time),
-
       end_time: formatTime(batch.end_time),
-
       weekdays: [...batch.weekdays],
-
       monthly_fee: batch.monthly_fee_paise / 100,
-
       capacity: batch.capacity ?? undefined,
-
       is_active: batch.is_active,
     });
   };
 
   const closeEditModal = () => {
-    if (updating) {
-      return;
-    }
+    if (updating) return;
 
     dispatch(clearUpdateBatchError());
-
     resetEdit();
-
     setEditingBatch(null);
   };
-
-  /*
-  |--------------------------------------------------------------------------
-  | Create Submit
-  |--------------------------------------------------------------------------
-  */
 
   const onCreateSubmit = async (data: CreateBatchForm) => {
     const payload: CreateBatchPayload = {
       program_id: Number(data.program_id),
-
       name: data.name,
-
       start_time: data.start_time,
-
       end_time: data.end_time,
-
       weekdays: data.weekdays,
-
       monthly_fee_paise: Math.round(Number(data.monthly_fee) * 100),
     };
 
@@ -366,33 +214,19 @@ function BatchesPage() {
 
     if (createBatch.fulfilled.match(result)) {
       resetCreate();
-
       setIsCreateModalOpen(false);
     }
   };
 
-  /*
-  |--------------------------------------------------------------------------
-  | Edit Submit
-  |--------------------------------------------------------------------------
-  */
-
   const onEditSubmit = async (data: EditBatchForm) => {
-    if (!editingBatch) {
-      return;
-    }
+    if (!editingBatch) return;
 
     const payload: UpdateBatchPayload = {
       name: data.name,
-
       start_time: data.start_time,
-
       end_time: data.end_time,
-
       weekdays: data.weekdays,
-
       monthly_fee_paise: Math.round(Number(data.monthly_fee) * 100),
-
       is_active: data.is_active,
     };
 
@@ -407,35 +241,32 @@ function BatchesPage() {
     const result = await dispatch(
       updateBatch({
         batchID: editingBatch.id,
-
         payload,
       }),
     );
 
     if (updateBatch.fulfilled.match(result)) {
       resetEdit();
-
       setEditingBatch(null);
     }
   };
 
-  /*
-  |--------------------------------------------------------------------------
-  | UI
-  |--------------------------------------------------------------------------
-  */
-
   return (
     <>
-      <div>
-        {/* HEADER */}
-
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="space-y-6">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Batches</h1>
+            <p className="text-sm font-semibold text-emerald-700">
+              Sports Management
+            </p>
 
-            <p className="mt-1 text-sm text-gray-500">
-              Manage schedules, pricing and capacity for sports programs.
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+              Batches
+            </h1>
+
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              Manage schedules, pricing and capacity for Adaa Farms sports
+              programs.
             </p>
           </div>
 
@@ -443,247 +274,284 @@ function BatchesPage() {
             type="button"
             onClick={openCreateModal}
             disabled={activePrograms.length === 0}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-900 px-4 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
           >
-            <Plus size={18} />
-            Add Batch
+            <Plus size={17} />
+            Add batch
           </button>
-        </div>
-
-        {/* NO ACTIVE PROGRAM WARNING */}
+        </header>
 
         {!programsLoading &&
           programs.length > 0 &&
           activePrograms.length === 0 && (
-            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               You need at least one active program before creating a batch.
             </div>
           )}
 
-        {/* TABLE CARD */}
+        <section className="grid grid-cols-2 gap-3 lg:max-w-3xl lg:grid-cols-3">
+          <SummaryCard
+            label="Total batches"
+            value={batches.length}
+            icon={<CalendarDays size={18} />}
+          />
 
-        <div className="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white">
-          {/* SEARCH */}
+          <SummaryCard
+            label="Active"
+            value={activeBatchCount}
+            icon={<Clock3 size={18} />}
+          />
 
-          <div className="flex flex-col gap-4 border-b border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative w-full max-w-sm">
+          <div className="col-span-2 lg:col-span-1">
+            <SummaryCard
+              label="Total capacity"
+              value={totalCapacity}
+              icon={<Users size={18} />}
+            />
+          </div>
+        </section>
+
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-4 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+            <div className="relative w-full sm:max-w-sm">
               <Search
                 size={17}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
               />
 
               <input
-                type="text"
+                type="search"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search batches..."
-                className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-4 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-gray-900"
+                placeholder="Search batch or program..."
+                className={searchClass}
               />
             </div>
 
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-slate-500">
               {filteredBatches.length}{" "}
               {filteredBatches.length === 1 ? "batch" : "batches"}
             </p>
           </div>
 
-          {/* LOADING */}
-
           {loading && (
-            <div className="p-12 text-center text-sm text-gray-500">
-              Loading batches...
-            </div>
+            <StateBox>
+              <p>Loading batches...</p>
+            </StateBox>
           )}
 
-          {/* ERROR */}
-
           {!loading && error && (
-            <div className="p-6">
+            <div className="p-5">
               <ErrorBox message={error} />
             </div>
           )}
 
-          {/* EMPTY */}
-
           {!loading && !error && filteredBatches.length === 0 && (
-            <div className="p-12 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
-                <CalendarDays size={24} className="text-gray-500" />
+            <StateBox>
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                <CalendarDays size={23} />
               </div>
 
-              <p className="mt-4 text-sm font-medium text-gray-800">
+              <p className="mt-4 font-semibold text-slate-800">
                 {search ? "No batches found" : "No batches yet"}
               </p>
 
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-slate-500">
                 {search
-                  ? "Try another search."
-                  : "Create a batch under one of your programs."}
+                  ? "Try searching for another batch or program."
+                  : "Create your first batch to get started."}
               </p>
-            </div>
+            </StateBox>
           )}
-
-          {/* TABLE */}
 
           {!loading && !error && filteredBatches.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Batch
-                    </th>
+            <>
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full min-w-[1000px] text-left">
+                  <thead className="border-b border-slate-100 bg-slate-50/80">
+                    <tr>
+                      <TableHeader>Batch</TableHeader>
+                      <TableHeader>Program</TableHeader>
+                      <TableHeader>Schedule</TableHeader>
+                      <TableHeader>Days</TableHeader>
+                      <TableHeader>Monthly fee</TableHeader>
+                      <TableHeader>Capacity</TableHeader>
+                      <TableHeader>Status</TableHeader>
+                      <TableHeader align="right">Action</TableHeader>
+                    </tr>
+                  </thead>
 
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Program
-                    </th>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredBatches.map((batch) => {
+                      const program = programMap.get(batch.program_id);
 
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Schedule
-                    </th>
+                      return (
+                        <tr
+                          key={batch.id}
+                          className="transition hover:bg-slate-50/70"
+                        >
+                          <td className="px-5 py-4">
+                            <p className="text-sm font-semibold text-slate-900">
+                              {batch.name}
+                            </p>
+                          </td>
 
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Days
-                    </th>
+                          <td className="px-5 py-4">
+                            <p className="text-sm text-slate-600">
+                              {program?.name ?? "Program unavailable"}
+                            </p>
+                          </td>
 
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Fee
-                    </th>
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                              <Clock3 size={15} className="text-emerald-700" />
 
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Capacity
-                    </th>
-
-                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Status
-                    </th>
-
-                    <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-gray-200">
-                  {filteredBatches.map((batch) => {
-                    const program = programMap.get(batch.program_id);
-
-                    return (
-                      <tr
-                        key={batch.id}
-                        className="transition hover:bg-gray-50"
-                      >
-                        {/* BATCH */}
-
-                        <td className="px-5 py-4">
-                          <p className="text-sm font-medium text-gray-900">
-                            {batch.name}
-                          </p>
-
-                          <p className="mt-1 text-xs text-gray-400">
-                            Batch #{batch.id}
-                          </p>
-                        </td>
-
-                        {/* PROGRAM */}
-
-                        <td className="px-5 py-4">
-                          <p className="text-sm text-gray-700">
-                            {program?.name ?? `Program #${batch.program_id}`}
-                          </p>
-                        </td>
-
-                        {/* TIME */}
-
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Clock3 size={15} />
-
-                            <span>
-                              {formatTime(batch.start_time)}
-                              {" - "}
-                              {formatTime(batch.end_time)}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* DAYS */}
-
-                        <td className="px-5 py-4">
-                          <div className="flex max-w-[220px] flex-wrap gap-1">
-                            {batch.weekdays.map((day) => (
-                              <span
-                                key={day}
-                                className="rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600"
-                              >
-                                {getWeekdayLabel(day)}
+                              <span>
+                                {formatTime(batch.start_time)} –{" "}
+                                {formatTime(batch.end_time)}
                               </span>
-                            ))}
-                          </div>
-                        </td>
+                            </div>
+                          </td>
 
-                        {/* FEE */}
+                          <td className="px-5 py-4">
+                            <div className="flex max-w-[220px] flex-wrap gap-1.5">
+                              {batch.weekdays.map((day) => (
+                                <DayBadge key={day}>
+                                  {getWeekdayLabel(day)}
+                                </DayBadge>
+                              ))}
+                            </div>
+                          </td>
 
-                        <td className="px-5 py-4 text-sm font-medium text-gray-700">
-                          ₹{formatRupees(batch.monthly_fee_paise)}
-                        </td>
+                          <td className="px-5 py-4">
+                            <p className="text-sm font-semibold text-slate-900">
+                              ₹{formatRupees(batch.monthly_fee_paise)}
+                            </p>
+                          </td>
 
-                        {/* CAPACITY */}
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                              <Users size={15} className="text-emerald-700" />
+                              {batch.capacity ?? "Unlimited"}
+                            </div>
+                          </td>
 
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Users size={15} />
+                          <td className="px-5 py-4">
+                            <StatusBadge active={batch.is_active} />
+                          </td>
 
-                            <span>{batch.capacity ?? "Unlimited"}</span>
-                          </div>
-                        </td>
+                          <td className="px-5 py-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(batch)}
+                              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800"
+                            >
+                              <Pencil size={14} />
+                              Edit
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
-                        {/* STATUS */}
+              <div className="divide-y divide-slate-100 md:hidden">
+                {filteredBatches.map((batch) => {
+                  const program = programMap.get(batch.program_id);
 
-                        <td className="px-5 py-4">
-                          <StatusBadge active={batch.is_active} />
-                        </td>
+                  return (
+                    <article key={batch.id} className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                            {program?.name ?? "Program"}
+                          </p>
 
-                        {/* ACTION */}
+                          <h2 className="mt-1 truncate font-semibold text-slate-950">
+                            {batch.name}
+                          </h2>
+                        </div>
 
-                        <td className="px-5 py-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(batch)}
-                            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
-                          >
-                            <Pencil size={15} />
-                            Edit
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        <StatusBadge active={batch.is_active} />
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3">
+                        <MobileInfo
+                          icon={<Clock3 size={15} />}
+                          label="Schedule"
+                          value={`${formatTime(batch.start_time)} – ${formatTime(
+                            batch.end_time,
+                          )}`}
+                        />
+
+                        <MobileInfo
+                          icon={<Users size={15} />}
+                          label="Capacity"
+                          value={
+                            batch.capacity !== null &&
+                            batch.capacity !== undefined
+                              ? String(batch.capacity)
+                              : "Unlimited"
+                          }
+                        />
+                      </div>
+
+                      <div className="mt-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                          Training days
+                        </p>
+
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {batch.weekdays.map((day) => (
+                            <DayBadge key={day}>
+                              {getWeekdayLabel(day)}
+                            </DayBadge>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-between gap-4 border-t border-slate-100 pt-4">
+                        <div>
+                          <p className="text-xs text-slate-400">Monthly fee</p>
+                          <p className="mt-0.5 font-semibold text-slate-950">
+                            ₹{formatRupees(batch.monthly_fee_paise)}
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(batch)}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                        >
+                          <Pencil size={14} />
+                          Edit
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </>
           )}
-        </div>
+        </section>
       </div>
-
-      {/* CREATE MODAL */}
 
       {isCreateModalOpen && (
         <ModalOverlay>
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl">
+          <ModalCard>
             <ModalHeader
-              title="Add Batch"
-              description="Create a scheduled batch under a program."
+              title="Add batch"
+              description="Create a scheduled batch under an Adaa Farms program."
               onClose={closeCreateModal}
             />
 
             <form
               onSubmit={handleCreateSubmit(onCreateSubmit)}
-              className="space-y-6 p-6"
+              className="space-y-6 p-5 sm:p-6"
             >
               <div className="grid gap-5 md:grid-cols-2">
-                {/* PROGRAM */}
-
                 <FormField
                   label="Program"
                   required
@@ -692,9 +560,7 @@ function BatchesPage() {
                   <select
                     {...registerCreate("program_id", {
                       required: "Program is required",
-
                       valueAsNumber: true,
-
                       min: {
                         value: 1,
                         message: "Select a program",
@@ -712,8 +578,6 @@ function BatchesPage() {
                   </select>
                 </FormField>
 
-                {/* NAME */}
-
                 <FormField
                   label="Batch name"
                   required
@@ -724,12 +588,10 @@ function BatchesPage() {
                     placeholder="e.g. Morning Batch"
                     {...registerCreate("name", {
                       required: "Batch name is required",
-
                       minLength: {
                         value: 2,
                         message: "Minimum 2 characters",
                       },
-
                       maxLength: {
                         value: 100,
                         message: "Maximum 100 characters",
@@ -738,8 +600,6 @@ function BatchesPage() {
                     className={inputClass}
                   />
                 </FormField>
-
-                {/* START */}
 
                 <FormField
                   label="Start time"
@@ -755,8 +615,6 @@ function BatchesPage() {
                   />
                 </FormField>
 
-                {/* END */}
-
                 <FormField
                   label="End time"
                   required
@@ -771,15 +629,13 @@ function BatchesPage() {
                   />
                 </FormField>
 
-                {/* FEE */}
-
                 <FormField
                   label="Monthly fee"
                   required
                   error={createFormErrors.monthly_fee?.message}
                 >
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-500">
                       ₹
                     </span>
 
@@ -790,9 +646,7 @@ function BatchesPage() {
                       placeholder="2500"
                       {...registerCreate("monthly_fee", {
                         required: "Monthly fee is required",
-
                         valueAsNumber: true,
-
                         min: {
                           value: 0.01,
                           message: "Fee must be greater than zero",
@@ -802,8 +656,6 @@ function BatchesPage() {
                     />
                   </div>
                 </FormField>
-
-                {/* CAPACITY */}
 
                 <FormField
                   label="Capacity"
@@ -815,7 +667,6 @@ function BatchesPage() {
                     placeholder="e.g. 20"
                     {...registerCreate("capacity", {
                       valueAsNumber: true,
-
                       min: {
                         value: 1,
                         message: "Capacity must be greater than zero",
@@ -824,13 +675,11 @@ function BatchesPage() {
                     className={inputClass}
                   />
 
-                  <p className="mt-1.5 text-xs text-gray-400">
+                  <p className="mt-1.5 text-xs text-slate-400">
                     Leave empty for no fixed capacity.
                   </p>
                 </FormField>
               </div>
-
-              {/* WEEKDAYS */}
 
               <Controller
                 name="weekdays"
@@ -848,57 +697,48 @@ function BatchesPage() {
                 )}
               />
 
-              {/* BACKEND ERROR */}
-
               {createError && <ErrorBox message={createError} />}
 
               <ModalActions
                 loading={creating}
-                submitText="Create Batch"
+                submitText="Create batch"
                 loadingText="Creating..."
                 onCancel={closeCreateModal}
               />
             </form>
-          </div>
+          </ModalCard>
         </ModalOverlay>
       )}
 
-      {/* EDIT MODAL */}
-
       {editingBatch && (
         <ModalOverlay>
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl">
+          <ModalCard>
             <ModalHeader
-              title="Edit Batch"
+              title="Edit batch"
               description={`Update ${editingBatch.name}.`}
               onClose={closeEditModal}
             />
 
             <form
               onSubmit={handleEditSubmit(onEditSubmit)}
-              className="space-y-6 p-6"
+              className="space-y-6 p-5 sm:p-6"
             >
-              {/* PROGRAM INFO */}
-
-              <div className="rounded-xl bg-gray-50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Program
                 </p>
 
-                <p className="mt-1 text-sm font-medium text-gray-900">
+                <p className="mt-1 text-sm font-semibold text-slate-900">
                   {programMap.get(editingBatch.program_id)?.name ??
-                    `Program #${editingBatch.program_id}`}
+                    "Program unavailable"}
                 </p>
 
-                <p className="mt-1 text-xs text-gray-500">
-                  The program cannot be changed after the batch has been
-                  created.
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  The program cannot be changed after the batch is created.
                 </p>
               </div>
 
               <div className="grid gap-5 md:grid-cols-2">
-                {/* NAME */}
-
                 <FormField
                   label="Batch name"
                   required
@@ -908,12 +748,10 @@ function BatchesPage() {
                     type="text"
                     {...registerEdit("name", {
                       required: "Batch name is required",
-
                       minLength: {
                         value: 2,
                         message: "Minimum 2 characters",
                       },
-
                       maxLength: {
                         value: 100,
                         message: "Maximum 100 characters",
@@ -923,8 +761,6 @@ function BatchesPage() {
                   />
                 </FormField>
 
-                {/* STATUS */}
-
                 <FormField label="Status">
                   <select
                     {...registerEdit("is_active", {
@@ -933,12 +769,9 @@ function BatchesPage() {
                     className={inputClass}
                   >
                     <option value="true">Active</option>
-
                     <option value="false">Inactive</option>
                   </select>
                 </FormField>
-
-                {/* START */}
 
                 <FormField
                   label="Start time"
@@ -954,8 +787,6 @@ function BatchesPage() {
                   />
                 </FormField>
 
-                {/* END */}
-
                 <FormField
                   label="End time"
                   required
@@ -970,15 +801,13 @@ function BatchesPage() {
                   />
                 </FormField>
 
-                {/* FEE */}
-
                 <FormField
                   label="Monthly fee"
                   required
                   error={editFormErrors.monthly_fee?.message}
                 >
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-500">
                       ₹
                     </span>
 
@@ -988,9 +817,7 @@ function BatchesPage() {
                       step="0.01"
                       {...registerEdit("monthly_fee", {
                         required: "Monthly fee is required",
-
                         valueAsNumber: true,
-
                         min: {
                           value: 0.01,
                           message: "Fee must be greater than zero",
@@ -1001,8 +828,6 @@ function BatchesPage() {
                   </div>
                 </FormField>
 
-                {/* CAPACITY */}
-
                 <FormField
                   label="Capacity"
                   error={editFormErrors.capacity?.message}
@@ -1012,7 +837,6 @@ function BatchesPage() {
                     min="1"
                     {...registerEdit("capacity", {
                       valueAsNumber: true,
-
                       min: {
                         value: 1,
                         message: "Capacity must be greater than zero",
@@ -1020,10 +844,12 @@ function BatchesPage() {
                     })}
                     className={inputClass}
                   />
+
+                  <p className="mt-1.5 text-xs text-slate-400">
+                    Leave empty for no fixed capacity.
+                  </p>
                 </FormField>
               </div>
-
-              {/* WEEKDAYS */}
 
               <Controller
                 name="weekdays"
@@ -1041,35 +867,105 @@ function BatchesPage() {
                 )}
               />
 
-              {/* BACKEND ERROR */}
-
               {updateError && <ErrorBox message={updateError} />}
 
               <ModalActions
                 loading={updating}
-                submitText="Save Changes"
+                submitText="Save changes"
                 loadingText="Saving..."
                 onCancel={closeEditModal}
               />
             </form>
-          </div>
+          </ModalCard>
         </ModalOverlay>
       )}
     </>
   );
 }
 
-/*
-|--------------------------------------------------------------------------
-| Weekday Selector
-|--------------------------------------------------------------------------
-*/
+function SummaryCard({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: number;
+  icon: ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium text-slate-500">{label}</p>
+          <p className="mt-1 text-2xl font-semibold text-slate-950">{value}</p>
+        </div>
+
+        <div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-700">
+          {icon}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileInfo({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-3">
+      <div className="flex items-center gap-1.5 text-xs text-slate-400">
+        <span className="text-emerald-700">{icon}</span>
+        {label}
+      </div>
+
+      <p className="mt-1.5 text-sm font-medium text-slate-700">{value}</p>
+    </div>
+  );
+}
+
+function DayBadge({ children }: { children: ReactNode }) {
+  return (
+    <span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
+      {children}
+    </span>
+  );
+}
+
+function TableHeader({
+  children,
+  align = "left",
+}: {
+  children: ReactNode;
+  align?: "left" | "right";
+}) {
+  return (
+    <th
+      className={`px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 ${
+        align === "right" ? "text-right" : ""
+      }`}
+    >
+      {children}
+    </th>
+  );
+}
+
+function StateBox({ children }: { children: ReactNode }) {
+  return (
+    <div className="p-10 text-center text-sm text-slate-500 sm:p-12">
+      {children}
+    </div>
+  );
+}
 
 type WeekdaySelectorProps = {
   value: number[];
-
   onChange: (value: number[]) => void;
-
   error?: string;
 };
 
@@ -1077,7 +973,6 @@ function WeekdaySelector({ value, onChange, error }: WeekdaySelectorProps) {
   const toggleDay = (day: number) => {
     if (value.includes(day)) {
       onChange(value.filter((item) => item !== day));
-
       return;
     }
 
@@ -1086,16 +981,16 @@ function WeekdaySelector({ value, onChange, error }: WeekdaySelectorProps) {
 
   return (
     <div>
-      <p className="text-sm font-medium text-gray-700">
+      <p className="text-sm font-medium text-slate-700">
         Weekdays
         <span className="ml-1 text-red-500">*</span>
       </p>
 
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 text-sm text-slate-500">
         Select the days this batch runs.
       </p>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 grid grid-cols-4 gap-2 sm:flex sm:flex-wrap">
         {weekdays.map((day) => {
           const selected = value.includes(day.value);
 
@@ -1104,11 +999,11 @@ function WeekdaySelector({ value, onChange, error }: WeekdaySelectorProps) {
               key={day.value}
               type="button"
               onClick={() => toggleDay(day.value)}
-              className={
+              className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
                 selected
-                  ? "rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white"
-                  : "rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
-              }
+                  ? "border-emerald-700 bg-emerald-700 text-white"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800"
+              }`}
             >
               {day.label}
             </button>
@@ -1121,12 +1016,6 @@ function WeekdaySelector({ value, onChange, error }: WeekdaySelectorProps) {
   );
 }
 
-/*
-|--------------------------------------------------------------------------
-| Helpers
-|--------------------------------------------------------------------------
-*/
-
 function getWeekdayLabel(value: number) {
   return (
     weekdays.find((weekday) => weekday.value === value)?.label ??
@@ -1137,48 +1026,37 @@ function getWeekdayLabel(value: number) {
 function formatRupees(paise: number) {
   return (paise / 100).toLocaleString("en-IN", {
     minimumFractionDigits: 0,
-
     maximumFractionDigits: 2,
   });
 }
 
 function formatTime(value: string) {
-  if (!value) {
-    return "—";
-  }
+  if (!value) return "—";
 
-  // Example:
-  // 0000-01-01T06:30:00Z
   if (value.includes("T")) {
-    const time = value.split("T")[1];
-
-    return time.slice(0, 5);
+    return value.split("T")[1].slice(0, 5);
   }
 
-  // Example:
-  // 06:30:00
-  // 06:30
   return value.slice(0, 5);
 }
 
-/*
-|--------------------------------------------------------------------------
-| Shared Styles
-|--------------------------------------------------------------------------
-*/
-
 const inputClass =
-  "w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-gray-900";
+  "h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-700 focus:ring-4 focus:ring-emerald-700/10";
 
-/*
-|--------------------------------------------------------------------------
-| Modal
-|--------------------------------------------------------------------------
-*/
+const searchClass =
+  "h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-700 focus:bg-white focus:ring-4 focus:ring-emerald-700/10";
 
 function ModalOverlay({ children }: { children: ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-emerald-950/30 backdrop-blur-sm sm:items-center sm:p-4">
+      {children}
+    </div>
+  );
+}
+
+function ModalCard({ children }: { children: ReactNode }) {
+  return (
+    <div className="max-h-[94vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:max-w-2xl sm:rounded-2xl">
       {children}
     </div>
   );
@@ -1186,45 +1064,34 @@ function ModalOverlay({ children }: { children: ReactNode }) {
 
 type ModalHeaderProps = {
   title: string;
-
   description: string;
-
   onClose: () => void;
 };
 
 function ModalHeader({ title, description, onClose }: ModalHeaderProps) {
   return (
-    <div className="flex items-start justify-between border-b border-gray-200 px-6 py-5">
+    <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-5 sm:px-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
-
-        <p className="mt-1 text-sm text-gray-500">{description}</p>
+        <h2 className="text-xl font-semibold text-slate-950">{title}</h2>
+        <p className="mt-1 text-sm leading-5 text-slate-500">{description}</p>
       </div>
 
       <button
         type="button"
         onClick={onClose}
-        className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+        aria-label="Close modal"
+        className="shrink-0 rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-800"
       >
-        <X size={20} />
+        <X size={19} />
       </button>
     </div>
   );
 }
 
-/*
-|--------------------------------------------------------------------------
-| Form Field
-|--------------------------------------------------------------------------
-*/
-
 type FormFieldProps = {
   label: string;
-
   error?: string;
-
   required?: boolean;
-
   children: ReactNode;
 };
 
@@ -1236,9 +1103,8 @@ function FormField({
 }: FormFieldProps) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-gray-700">
+      <label className="mb-2 block text-sm font-medium text-slate-700">
         {label}
-
         {required && <span className="ml-1 text-red-500">*</span>}
       </label>
 
@@ -1249,55 +1115,32 @@ function FormField({
   );
 }
 
-/*
-|--------------------------------------------------------------------------
-| Error Box
-|--------------------------------------------------------------------------
-*/
-
 function ErrorBox({ message }: { message: string }) {
   return (
-    <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
       {message}
     </div>
   );
 }
 
-/*
-|--------------------------------------------------------------------------
-| Status Badge
-|--------------------------------------------------------------------------
-*/
-
 function StatusBadge({ active }: { active: boolean }) {
-  if (active) {
-    return (
-      <span className="inline-flex rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
-        Active
-      </span>
-    );
-  }
-
   return (
-    <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
-      Inactive
+    <span
+      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+        active
+          ? "bg-emerald-50 text-emerald-700"
+          : "bg-slate-100 text-slate-600"
+      }`}
+    >
+      {active ? "Active" : "Inactive"}
     </span>
   );
 }
 
-/*
-|--------------------------------------------------------------------------
-| Modal Actions
-|--------------------------------------------------------------------------
-*/
-
 type ModalActionsProps = {
   loading: boolean;
-
   submitText: string;
-
   loadingText: string;
-
   onCancel: () => void;
 };
 
@@ -1308,12 +1151,12 @@ function ModalActions({
   onCancel,
 }: ModalActionsProps) {
   return (
-    <div className="flex justify-end gap-3 border-t border-gray-200 pt-5">
+    <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
       <button
         type="button"
         onClick={onCancel}
         disabled={loading}
-        className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+        className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
       >
         Cancel
       </button>
@@ -1321,7 +1164,7 @@ function ModalActions({
       <button
         type="submit"
         disabled={loading}
-        className="rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+        className="h-11 rounded-xl bg-emerald-900 px-5 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {loading ? loadingText : submitText}
       </button>
