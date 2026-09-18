@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	_ "github.com/Ayushmangit/adaago.git/backend/docs"
@@ -54,9 +55,13 @@ func (app *application) mount() http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{
-			env.GetString("CORS_ALLOWED_ORIGINS", "http://localhost:5173"),
-		},
+		AllowedOrigins: strings.Split(
+			env.GetString(
+				"CORS_ALLOWED_ORIGINS",
+				"http://localhost:5173,http://localhost:4173",
+			),
+			",",
+		),
 		AllowedMethods: []string{
 			http.MethodGet,
 			http.MethodPost,
@@ -106,7 +111,17 @@ func (app *application) mount() http.Handler {
 
 			r.Get("/me", app.getCurrentUserHandler)
 			r.Patch("/me/password", app.changePasswordHandler)
+			/*
+				Dashboard routes
+			*/
 
+			r.Route("/dashboard", func(r chi.Router) {
+				r.Group(func(r chi.Router) {
+					r.Use(app.RequireRole(store.RoleAdmin))
+
+					r.Get("/summary", app.getDashboardSummaryHandler)
+				})
+			})
 			/*
 				Student routes
 			*/
@@ -120,8 +135,10 @@ func (app *application) mount() http.Handler {
 					r.Use(app.RequireRole(store.RoleStudent))
 
 					r.Get("/profile", app.getStudentProfileHandler)
+					r.Get("/profile/dashboard", app.getStudentDashboardHandler)
 					r.Get("/profile/enrollments", app.getMyEnrollmentsHandler)
 					r.Get("/profile/attendance", app.getMyAttendanceHandler)
+					r.Get("/profile/fees", app.getMyFeesHandler)
 				})
 
 				/*
@@ -163,7 +180,6 @@ func (app *application) mount() http.Handler {
 					r.Patch("/{programID}", app.updateProgramHandler)
 				})
 			})
-
 			/*
 				Batch routes
 			*/
@@ -187,7 +203,9 @@ func (app *application) mount() http.Handler {
 					r.Patch("/{batchID}", app.updateBatchHandler)
 
 					r.Get("/{batchID}/enrollments", app.getBatchEnrollmentsHandler)
+
 					r.Get("/{batchID}/attendance", app.getBatchAttendanceHandler)
+					r.Get("/{batchID}/attendance/register", app.getBatchAttendanceRegisterHandler)
 					r.Post("/{batchID}/attendance/bulk", app.bulkAttendanceHandler)
 				})
 			})

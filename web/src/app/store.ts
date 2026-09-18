@@ -5,6 +5,10 @@ import programReducer from "../features/programs/programSlice";
 import batchReducer from "../features/batches/batchSlice";
 import enrollmentReducer from "../features/enrollments/enrollmentSlice";
 import attendanceReducer from "../features/attendance/attendanceSlice";
+import feeReducer from "../features/fees/feeSlice";
+import dashboardReducer from "../features/dashboard/dashboardSlice";
+import studentDashboardReducer from "../features/studentDashboard/studentDashboardSlice";
+import studentFeeReducer from "../features/studentFees/studentFeesSlice.ts";
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +18,10 @@ export const store = configureStore({
     batches: batchReducer,
     enrollments: enrollmentReducer,
     attendance: attendanceReducer,
+    fees: feeReducer,
+    dashboard: dashboardReducer,
+    studentDashboard: studentDashboardReducer,
+    studentFees: studentFeeReducer,
   },
 });
 

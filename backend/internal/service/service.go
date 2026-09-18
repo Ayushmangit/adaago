@@ -165,24 +165,33 @@ type Services struct {
 			input BulkAttendanceInput,
 		) ([]store.Attendance, error)
 	}
+	Dashboard interface {
+		GetSummary(ctx context.Context) (*store.DashboardSummary, error)
+	}
 	FeeDues interface {
 		GenerateMonthlyDues(ctx context.Context, input GenerateFeeDuesInput) (*store.GenerateMonthlyDuesResult, error)
 		GetByID(ctx context.Context, feeDueID int64) (*store.FeeDue, error)
 		GetByEnrollmentID(ctx context.Context, enrollmentID int64) ([]store.FeeDue, error)
+		GetForUser(ctx context.Context, userID int64) ([]store.FeeDueWithDetails, error)
 		GetByBillingMonth(ctx context.Context, billingMonth time.Time) ([]store.FeeDue, error)
 		GetRegister(ctx context.Context, input GetFeeRegisterInput) (*store.PaginatedFeeRegister, error)
 		MarkPaid(ctx context.Context, feeDueID, adminID int64, notes *string) (*store.FeeDue, error)
+	}
+	StudentDashboard interface {
+		GetSummary(ctx context.Context, userID int64) (*store.StudentDashboardSummary, error)
 	}
 }
 
 func NewServices(storage store.Storage) Services {
 	return Services{
-		Programs:    &ProgramService{storage},
-		Batches:     &BatchService{storage},
-		Students:    &StudentService{storage},
-		Enrollments: &EnrollmentService{storage},
-		Users:       &UserService{storage},
-		Attendance:  &AttendanceService{storage},
-		FeeDues:     &FeeDueService{storage},
+		Programs:         &ProgramService{storage},
+		Batches:          &BatchService{storage},
+		Students:         &StudentService{storage},
+		Enrollments:      &EnrollmentService{storage},
+		Users:            &UserService{storage},
+		Attendance:       &AttendanceService{storage},
+		FeeDues:          &FeeDueService{storage},
+		Dashboard:        &DashboardService{storage},
+		StudentDashboard: &StudentDashboardService{storage},
 	}
 }

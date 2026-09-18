@@ -30,6 +30,50 @@ type FeeDue struct {
 	UpdatedAt    time.Time    `json:"updated_at"`
 }
 
+type FeeDueWithDetails struct {
+	ID           int64        `json:"id"`
+	EnrollmentID int64        `json:"enrollment_id"`
+	StudentID    int64        `json:"student_id"`
+	StudentName  string       `json:"student_name"`
+	BatchID      int64        `json:"batch_id"`
+	BatchName    string       `json:"batch_name"`
+	ProgramID    int64        `json:"program_id"`
+	ProgramName  string       `json:"program_name"`
+	BillingMonth time.Time    `json:"billing_month"`
+	AmountPaise  int64        `json:"amount_paise"`
+	DueDate      time.Time    `json:"due_date"`
+	Status       FeeDueStatus `json:"status"`
+	Notes        *string      `json:"notes,omitempty"`
+	PaidAt       *time.Time   `json:"paid_at,omitempty"`
+	MarkedPaidBy *int64       `json:"marked_paid_by,omitempty"`
+	CreatedAt    time.Time    `json:"created_at"`
+	UpdatedAt    time.Time    `json:"updated_at"`
+}
+
+type FeeRegisterFilter struct {
+	BillingMonth time.Time
+	Search       string
+	Status       FeeDueStatus
+	Page         int
+	PageSize     int
+}
+
+type PaginatedFeeRegister struct {
+	Fees     []FeeDueWithDetails `json:"fees"`
+	Total    int64               `json:"total"`
+	Page     int                 `json:"page"`
+	PageSize int                 `json:"page_size"`
+}
+
+type GenerateMonthlyDuesResult struct {
+	Created int64 `json:"created"`
+}
+
+type UpdateFeeDuePayload struct {
+	Status FeeDueStatus
+	Notes  *string
+}
+
 type FeeDueStore struct {
 	db *sql.DB
 }
@@ -94,6 +138,8 @@ func (s *FeeDueStore) GetByID(ctx context.Context, feeDueID int64) (*FeeDue, err
 			due_date,
 			status,
 			notes,
+			paid_at,
+			marked_paid_by,
 			created_at,
 			updated_at
 		FROM fee_dues
@@ -110,6 +156,8 @@ func (s *FeeDueStore) GetByID(ctx context.Context, feeDueID int64) (*FeeDue, err
 		&fee.DueDate,
 		&fee.Status,
 		&fee.Notes,
+		&fee.PaidAt,
+		&fee.MarkedPaidBy,
 		&fee.CreatedAt,
 		&fee.UpdatedAt,
 	)
@@ -137,6 +185,8 @@ func (s *FeeDueStore) GetByEnrollmentID(ctx context.Context, enrollmentID int64)
 			due_date,
 			status,
 			notes,
+			paid_at,
+			marked_paid_by,
 			created_at,
 			updated_at
 		FROM fee_dues
@@ -158,6 +208,80 @@ func (s *FeeDueStore) GetByEnrollmentID(ctx context.Context, enrollmentID int64)
 		if err := rows.Scan(
 			&fee.ID,
 			&fee.EnrollmentID,
+			&fee.BillingMonth,
+			&fee.AmountPaise,
+			&fee.DueDate,
+			&fee.Status,
+			&fee.Notes,
+			&fee.PaidAt,
+			&fee.MarkedPaidBy,
+			&fee.CreatedAt,
+			&fee.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		fees = append(fees, fee)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return fees, nil
+}
+
+func (s *FeeDueStore) GetByUserID(ctx context.Context, userID int64) ([]FeeDueWithDetails, error) {
+	ctx, cancel := context.WithTimeout(ctx, QUERY_CANCEL_DURATION)
+	defer cancel()
+
+	query := `
+		SELECT
+			fd.id,
+			fd.enrollment_id,
+			s.id,
+			s.full_name,
+			b.id,
+			b.name,
+			p.id,
+			p.name,
+			fd.billing_month,
+			fd.amount_paise,
+			fd.due_date,
+			fd.status,
+			fd.notes,
+			fd.created_at,
+			fd.updated_at
+		FROM fee_dues fd
+		JOIN enrollments e ON e.id = fd.enrollment_id
+		JOIN students s ON s.id = e.student_id
+		JOIN users u ON u.id = s.user_id
+		JOIN batches b ON b.id = e.batch_id
+		JOIN programs p ON p.id = b.program_id
+		WHERE u.id = $1
+		ORDER BY fd.billing_month DESC, fd.id DESC
+	`
+
+	rows, err := s.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	fees := make([]FeeDueWithDetails, 0)
+
+	for rows.Next() {
+		var fee FeeDueWithDetails
+
+		if err := rows.Scan(
+			&fee.ID,
+			&fee.EnrollmentID,
+			&fee.StudentID,
+			&fee.StudentName,
+			&fee.BatchID,
+			&fee.BatchName,
+			&fee.ProgramID,
+			&fee.ProgramName,
 			&fee.BillingMonth,
 			&fee.AmountPaise,
 			&fee.DueDate,
@@ -192,6 +316,8 @@ func (s *FeeDueStore) GetByBillingMonth(ctx context.Context, billingMonth time.T
 			due_date,
 			status,
 			notes,
+			paid_at,
+			marked_paid_by,
 			created_at,
 			updated_at
 		FROM fee_dues
@@ -218,6 +344,8 @@ func (s *FeeDueStore) GetByBillingMonth(ctx context.Context, billingMonth time.T
 			&fee.DueDate,
 			&fee.Status,
 			&fee.Notes,
+			&fee.PaidAt,
+			&fee.MarkedPaidBy,
 			&fee.CreatedAt,
 			&fee.UpdatedAt,
 		); err != nil {
@@ -232,11 +360,6 @@ func (s *FeeDueStore) GetByBillingMonth(ctx context.Context, billingMonth time.T
 	}
 
 	return fees, nil
-}
-
-type UpdateFeeDuePayload struct {
-	Status FeeDueStatus
-	Notes  *string
 }
 
 func (s *FeeDueStore) UpdateByID(ctx context.Context, feeDueID int64, payload UpdateFeeDuePayload) (*FeeDue, error) {
@@ -258,6 +381,8 @@ func (s *FeeDueStore) UpdateByID(ctx context.Context, feeDueID int64, payload Up
 			due_date,
 			status,
 			notes,
+			paid_at,
+			marked_paid_by,
 			created_at,
 			updated_at
 	`
@@ -278,6 +403,8 @@ func (s *FeeDueStore) UpdateByID(ctx context.Context, feeDueID int64, payload Up
 		&fee.DueDate,
 		&fee.Status,
 		&fee.Notes,
+		&fee.PaidAt,
+		&fee.MarkedPaidBy,
 		&fee.CreatedAt,
 		&fee.UpdatedAt,
 	)
@@ -294,74 +421,6 @@ func (s *FeeDueStore) UpdateByID(ctx context.Context, feeDueID int64, payload Up
 	}
 
 	return fee, nil
-}
-
-type BillableEnrollment struct {
-	EnrollmentID    int64     `json:"enrollment_id"`
-	StudentID       int64     `json:"student_id"`
-	BatchID         int64     `json:"batch_id"`
-	JoinedAt        time.Time `json:"joined_at"`
-	MonthlyFeePaise int64     `json:"monthly_fee_paise"`
-}
-
-func (s *FeeDueStore) GetBillableEnrollments(ctx context.Context, billingMonth time.Time) ([]BillableEnrollment, error) {
-	ctx, cancel := context.WithTimeout(ctx, QUERY_CANCEL_DURATION)
-	defer cancel()
-
-	nextMonth := billingMonth.AddDate(0, 1, 0)
-
-	query := `
-		SELECT
-			e.id,
-			e.student_id,
-			e.batch_id,
-			e.joined_at,
-			b.monthly_fee_paise
-		FROM enrollments e
-		JOIN batches b ON b.id = e.batch_id
-		WHERE
-			e.joined_at < $1
-			AND (
-				e.left_at IS NULL
-				OR e.left_at >= $2
-			)
-			AND e.status != 'cancelled'
-		ORDER BY e.id
-	`
-
-	rows, err := s.db.QueryContext(ctx, query, nextMonth, billingMonth)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	enrollments := make([]BillableEnrollment, 0)
-
-	for rows.Next() {
-		var enrollment BillableEnrollment
-
-		if err := rows.Scan(
-			&enrollment.EnrollmentID,
-			&enrollment.StudentID,
-			&enrollment.BatchID,
-			&enrollment.JoinedAt,
-			&enrollment.MonthlyFeePaise,
-		); err != nil {
-			return nil, err
-		}
-
-		enrollments = append(enrollments, enrollment)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return enrollments, nil
-}
-
-type GenerateMonthlyDuesResult struct {
-	Created int64 `json:"created"`
 }
 
 func (s *FeeDueStore) GenerateMonthlyDues(ctx context.Context, billingMonth, dueDate time.Time) (*GenerateMonthlyDuesResult, error) {
@@ -419,24 +478,6 @@ func (s *FeeDueStore) GenerateMonthlyDues(ctx context.Context, billingMonth, due
 	}, nil
 }
 
-type FeeDueWithDetails struct {
-	ID           int64        `json:"id"`
-	EnrollmentID int64        `json:"enrollment_id"`
-	StudentID    int64        `json:"student_id"`
-	StudentName  string       `json:"student_name"`
-	BatchID      int64        `json:"batch_id"`
-	BatchName    string       `json:"batch_name"`
-	ProgramID    int64        `json:"program_id"`
-	ProgramName  string       `json:"program_name"`
-	BillingMonth time.Time    `json:"billing_month"`
-	AmountPaise  int64        `json:"amount_paise"`
-	DueDate      time.Time    `json:"due_date"`
-	Status       FeeDueStatus `json:"status"`
-	Notes        *string      `json:"notes,omitempty"`
-	CreatedAt    time.Time    `json:"created_at"`
-	UpdatedAt    time.Time    `json:"updated_at"`
-}
-
 func (s *FeeDueStore) GetRegister(ctx context.Context, filter FeeRegisterFilter) (*PaginatedFeeRegister, error) {
 	ctx, cancel := context.WithTimeout(ctx, QUERY_CANCEL_DURATION)
 	defer cancel()
@@ -492,6 +533,8 @@ func (s *FeeDueStore) GetRegister(ctx context.Context, filter FeeRegisterFilter)
 			fd.due_date,
 			fd.status,
 			fd.notes,
+			fd.paid_at,
+			fd.marked_paid_by,
 			fd.created_at,
 			fd.updated_at
 		FROM fee_dues fd
@@ -548,6 +591,8 @@ func (s *FeeDueStore) GetRegister(ctx context.Context, filter FeeRegisterFilter)
 			&fee.DueDate,
 			&fee.Status,
 			&fee.Notes,
+			&fee.PaidAt,
+			&fee.MarkedPaidBy,
 			&fee.CreatedAt,
 			&fee.UpdatedAt,
 		); err != nil {
@@ -569,21 +614,6 @@ func (s *FeeDueStore) GetRegister(ctx context.Context, filter FeeRegisterFilter)
 	}, nil
 }
 
-type FeeRegisterFilter struct {
-	BillingMonth time.Time
-	Search       string
-	Status       FeeDueStatus
-	Page         int
-	PageSize     int
-}
-
-type PaginatedFeeRegister struct {
-	Fees     []FeeDueWithDetails `json:"fees"`
-	Total    int64               `json:"total"`
-	Page     int                 `json:"page"`
-	PageSize int                 `json:"page_size"`
-}
-
 func (s *FeeDueStore) MarkPaid(ctx context.Context, feeDueID, adminID int64, notes *string) (*FeeDue, error) {
 	ctx, cancel := context.WithTimeout(ctx, QUERY_CANCEL_DURATION)
 	defer cancel()
@@ -596,8 +626,8 @@ func (s *FeeDueStore) MarkPaid(ctx context.Context, feeDueID, adminID int64, not
 			marked_paid_by = $1,
 			notes = COALESCE($2, notes),
 			updated_at = NOW()
-WHERE id = $3
-	AND status = 'pending'
+		WHERE id = $3
+			AND status = 'pending'
 		RETURNING
 			id,
 			enrollment_id,

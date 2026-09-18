@@ -181,6 +181,14 @@ func (s *FeeDueService) GetRegister(ctx context.Context, input GetFeeRegisterInp
 	})
 }
 
+func (s *FeeDueService) GetForUser(ctx context.Context, userID int64) ([]store.FeeDueWithDetails, error) {
+	if userID <= 0 {
+		return nil, store.ErrInvalidID
+	}
+
+	return s.store.FeeDues.GetByUserID(ctx, userID)
+}
+
 func (s *FeeDueService) MarkPaid(ctx context.Context, feeDueID, adminID int64, notes *string) (*store.FeeDue, error) {
 	if feeDueID <= 0 || adminID <= 0 {
 		return nil, store.ErrInvalidID

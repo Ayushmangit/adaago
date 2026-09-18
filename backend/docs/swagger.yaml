@@ -31,6 +31,11 @@ definitions:
           $ref: '#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.Batch'
         type: array
     type: object
+  cmd_api.DashboardSummaryResponse:
+    properties:
+      data:
+        $ref: '#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.DashboardSummary'
+    type: object
   cmd_api.EnrollmentResponse:
     properties:
       data:
@@ -85,6 +90,11 @@ definitions:
     required:
     - email
     - password
+    type: object
+  cmd_api.MarkFeePaidPayload:
+    properties:
+      notes:
+        type: string
     type: object
   cmd_api.MeResponse:
     properties:
@@ -448,6 +458,44 @@ definitions:
           type: integer
         type: array
     type: object
+  github_com_Ayushmangit_adaago_git_backend_internal_store.DashboardBatch:
+    properties:
+      capacity:
+        type: integer
+      end_time:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      program_id:
+        type: integer
+      program_name:
+        type: string
+      start_time:
+        type: string
+    type: object
+  github_com_Ayushmangit_adaago_git_backend_internal_store.DashboardSummary:
+    properties:
+      active_batches:
+        type: integer
+      active_programs:
+        type: integer
+      active_students:
+        type: integer
+      batches:
+        items:
+          $ref: '#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.DashboardBatch'
+        type: array
+      total_batches:
+        type: integer
+      total_capacity:
+        type: integer
+      total_programs:
+        type: integer
+      total_students:
+        type: integer
+    type: object
   github_com_Ayushmangit_adaago_git_backend_internal_store.Enrollment:
     properties:
       batch_id:
@@ -477,6 +525,31 @@ definitions:
     - EnrollmentStatusActive
     - EnrollmentStatusCompleted
     - EnrollmentStatusCancelled
+  github_com_Ayushmangit_adaago_git_backend_internal_store.FeeDue:
+    properties:
+      amount_paise:
+        type: integer
+      billing_month:
+        type: string
+      created_at:
+        type: string
+      due_date:
+        type: string
+      enrollment_id:
+        type: integer
+      id:
+        type: integer
+      marked_paid_by:
+        type: integer
+      notes:
+        type: string
+      paid_at:
+        type: string
+      status:
+        $ref: '#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.FeeDueStatus'
+      updated_at:
+        type: string
+    type: object
   github_com_Ayushmangit_adaago_git_backend_internal_store.FeeDueStatus:
     enum:
     - pending
@@ -507,7 +580,11 @@ definitions:
         type: integer
       id:
         type: integer
+      marked_paid_by:
+        type: integer
       notes:
+        type: string
+      paid_at:
         type: string
       program_id:
         type: integer
@@ -525,6 +602,19 @@ definitions:
   github_com_Ayushmangit_adaago_git_backend_internal_store.GenerateMonthlyDuesResult:
     properties:
       created:
+        type: integer
+    type: object
+  github_com_Ayushmangit_adaago_git_backend_internal_store.PaginatedFeeRegister:
+    properties:
+      fees:
+        items:
+          $ref: '#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.FeeDueWithDetails'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
         type: integer
     type: object
   github_com_Ayushmangit_adaago_git_backend_internal_store.Program:
@@ -550,6 +640,27 @@ definitions:
     x-enum-varnames:
     - RoleAdmin
     - RoleStudent
+  github_com_Ayushmangit_adaago_git_backend_internal_store.StudentDashboardSummary:
+    properties:
+      absent:
+        type: integer
+      active_enrollments:
+        type: integer
+      attendance_percent:
+        type: number
+      full_name:
+        type: string
+      leave:
+        type: integer
+      pending_amount_paise:
+        type: integer
+      pending_fees:
+        type: integer
+      present:
+        type: integer
+      student_id:
+        type: integer
+    type: object
   github_com_Ayushmangit_adaago_git_backend_internal_store.StudentStatus:
     enum:
     - active
@@ -1133,6 +1244,33 @@ paths:
       summary: List batch enrollments
       tags:
       - enrollments
+  /dashboard/summary:
+    get:
+      description: Returns aggregate statistics for the admin dashboard.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/cmd_api.DashboardSummaryResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get admin dashboard summary
+      tags:
+      - dashboard
   /enrollments:
     post:
       consumes:
@@ -1317,13 +1455,37 @@ paths:
       - attendance
   /fees:
     get:
-      description: Get fee dues with student, batch and program details for a billing
-        month
+      description: Get paginated monthly fee dues with student, batch and program
+        details
       parameters:
-      - description: Billing month (YYYY-MM-DD)
+      - description: Billing month
+        example: "2026-09-01"
         in: query
         name: month
         required: true
+        type: string
+      - default: 1
+        description: Page
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Search student, username, email, batch or program
+        in: query
+        name: search
+        type: string
+      - description: Fee status
+        enum:
+        - pending
+        - partial
+        - paid
+        - cancelled
+        in: query
+        name: status
         type: string
       produces:
       - application/json
@@ -1331,9 +1493,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.FeeDueWithDetails'
-            type: array
+            $ref: '#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.PaginatedFeeRegister'
         "400":
           description: Bad Request
           schema: {}
@@ -1349,6 +1509,49 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get monthly fee register
+      tags:
+      - fees
+  /fees/{feeDueID}/paid:
+    patch:
+      consumes:
+      - application/json
+      description: Mark a monthly fee due as paid
+      parameters:
+      - description: Fee Due ID
+        in: path
+        name: feeDueID
+        required: true
+        type: integer
+      - description: Payment notes
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/cmd_api.MarkFeePaidPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.FeeDue'
+        "400":
+          description: Bad Request
+          schema: {}
+        "401":
+          description: Unauthorized
+          schema: {}
+        "403":
+          description: Forbidden
+          schema: {}
+        "404":
+          description: Not Found
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Mark fee as paid
       tags:
       - fees
   /fees/generate:
@@ -1902,6 +2105,29 @@ paths:
       summary: Get logged-in student's attendance
       tags:
       - attendance
+  /students/profile/dashboard:
+    get:
+      description: Get dashboard summary for the currently authenticated student
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.StudentDashboardSummary'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/cmd_api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get student dashboard
+      tags:
+      - students
   /students/profile/enrollments:
     get:
       description: Get all enrollments belonging to the currently authenticated student
@@ -1933,6 +2159,35 @@ paths:
       summary: Get logged-in student's enrollments
       tags:
       - enrollments
+  /students/profile/fees:
+    get:
+      description: Get fee dues for the currently authenticated student
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.FeeDueWithDetails'
+            type: array
+        "400":
+          description: Bad Request
+          schema: {}
+        "401":
+          description: Unauthorized
+          schema: {}
+        "403":
+          description: Forbidden
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Get my fee dues
+      tags:
+      - fees
 securityDefinitions:
   ApiKeyAuth:
     in: header

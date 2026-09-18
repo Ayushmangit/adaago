@@ -1,20 +1,6 @@
 export type FeeDueStatus = "pending" | "partial" | "paid" | "cancelled";
 
-export type FeeDue = {
-  id: number;
-  enrollment_id: number;
-  billing_month: string;
-  amount_paise: number;
-  due_date: string;
-  status: FeeDueStatus;
-  notes?: string;
-  paid_at?: string;
-  marked_paid_by?: number;
-  created_at: string;
-  updated_at: string;
-};
-
-export type FeeDueWithDetails = {
+export type StudentFee = {
   id: number;
   enrollment_id: number;
   student_id: number;
@@ -27,9 +13,8 @@ export type FeeDueWithDetails = {
   amount_paise: number;
   due_date: string;
   status: FeeDueStatus;
-  notes?: string;
-  paid_at?: string;
-  marked_paid_by?: number;
+  notes?: string | null;
+  paid_at?: string | null;
   created_at: string;
   updated_at: string;
 };

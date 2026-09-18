@@ -4,6 +4,9 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import App from "../App";
 import ProtectedRoute from "../components/ProtectedRoutes";
 
+const StudentFeesPage = lazy(() => import("../pages/student/StudentFeesPage"));
+const FeesPage = lazy(() => import("../pages/admin/FeesPage.tsx"));
+
 const LoginPage = lazy(() => import("../pages/LoginPage"));
 
 const AdminLayout = lazy(() => import("../Layouts/AdminLayout"));
@@ -13,6 +16,10 @@ const ProgramsPage = lazy(() => import("../pages/admin/ProgramsPage"));
 const BatchesPage = lazy(() => import("../pages/admin/BatchesPage"));
 const EnrollmentsPage = lazy(() => import("../pages/admin/EnrollmentsPage"));
 const AttendancePage = lazy(() => import("../pages/admin/AttendancePage"));
+
+const StudentAttendancePage = lazy(
+  () => import("../pages/student/StudentAttendancePage"),
+);
 
 const StudentLayout = lazy(() => import("../Layouts/StudentLayout"));
 const StudentDashboard = lazy(
@@ -118,6 +125,14 @@ export const router = createBrowserRouter([
                   </LazyPage>
                 ),
               },
+              {
+                path: "fees",
+                element: (
+                  <Suspense fallback={<div>Loading...</div>}>
+                    <FeesPage />
+                  </Suspense>
+                ),
+              },
             ],
           },
         ],
@@ -157,6 +172,22 @@ export const router = createBrowserRouter([
                 element: (
                   <LazyPage>
                     <StudentEnrollmentsPage />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: "attendance",
+                element: (
+                  <LazyPage>
+                    <StudentAttendancePage />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: "fees",
+                element: (
+                  <LazyPage>
+                    <StudentFeesPage />
                   </LazyPage>
                 ),
               },

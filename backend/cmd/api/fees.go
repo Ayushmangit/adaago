@@ -215,3 +215,35 @@ func (app *application) markFeePaidHandler(w http.ResponseWriter, r *http.Reques
 		app.InternalServerError(w, r, err)
 	}
 }
+
+// getMyFeesHandler godoc
+//
+//	@Summary		Get my fee dues
+//	@Description	Get fee dues for the currently authenticated student
+//	@Tags			fees
+//	@Produce		json
+//	@Security		ApiKeyAuth
+//	@Success		200	{array}		store.FeeDueWithDetails
+//	@Failure		400	{object}	error
+//	@Failure		401	{object}	error
+//	@Failure		403	{object}	error
+//	@Failure		500	{object}	error
+//	@Router			/students/profile/fees [get]
+func (app *application) getMyFeesHandler(w http.ResponseWriter, r *http.Request) {
+	user := getUserFromCtx(r)
+
+	fees, err := app.service.FeeDues.GetForUser(r.Context(), user.ID)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrInvalidID):
+			app.BadRequest(w, r, err)
+		default:
+			app.InternalServerError(w, r, err)
+		}
+		return
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, fees); err != nil {
+		app.InternalServerError(w, r, err)
+	}
+}

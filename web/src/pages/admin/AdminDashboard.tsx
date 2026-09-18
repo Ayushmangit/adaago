@@ -1,71 +1,26 @@
 import { Activity, CalendarDays, Layers3, UserPlus, Users } from "lucide-react";
-
-import { useEffect, useMemo } from "react";
-
+import { useEffect } from "react";
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-
-import { getStudents } from "../../features/students/studentThunks";
-
-import { getPrograms } from "../../features/programs/programThunks";
-
-import { getBatches } from "../../features/batches/batchThunks";
+import { getDashboardSummary } from "../../features/dashboard/dashboardThunks";
 
 function AdminDashboard() {
   const dispatch = useAppDispatch();
 
-  const { students, loading: studentsLoading } = useAppSelector(
-    (state) => state.students,
-  );
-
-  const { programs, loading: programsLoading } = useAppSelector(
-    (state) => state.programs,
-  );
-
-  const { batches, loading: batchesLoading } = useAppSelector(
-    (state) => state.batches,
+  const { summary, loading, error } = useAppSelector(
+    (state) => state.dashboard,
   );
 
   useEffect(() => {
-    dispatch(getStudents());
-
-    dispatch(getPrograms());
-
-    dispatch(getBatches());
+    dispatch(getDashboardSummary());
   }, [dispatch]);
 
-  const activeStudents = useMemo(
-    () => students.filter((student) => student.status === "active").length,
-    [students],
-  );
-
-  const activePrograms = useMemo(
-    () => programs.filter((program) => program.is_active).length,
-    [programs],
-  );
-
-  const activeBatches = useMemo(
-    () => batches.filter((batch) => batch.is_active).length,
-    [batches],
-  );
-
-  const totalCapacity = useMemo(() => {
-    return batches.reduce((total, batch) => {
-      if (!batch.is_active || batch.capacity == null) {
-        return total;
-      }
-
-      return total + batch.capacity;
-    }, 0);
-  }, [batches]);
-
-  const loading = studentsLoading || programsLoading || batchesLoading;
+  const batches = summary?.batches ?? [];
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-
       <div>
         <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
 
@@ -74,43 +29,43 @@ function AdminDashboard() {
         </p>
       </div>
 
-      {/* Summary Cards */}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <DashboardCard
           title="Active Students"
-          value={loading ? "..." : activeStudents}
-          description={`${students.length} total students`}
+          value={loading ? "..." : (summary?.active_students ?? 0)}
+          description={`${summary?.total_students ?? 0} total students`}
           icon={<Users size={20} />}
         />
 
         <DashboardCard
           title="Active Programs"
-          value={loading ? "..." : activePrograms}
-          description={`${programs.length} total programs`}
+          value={loading ? "..." : (summary?.active_programs ?? 0)}
+          description={`${summary?.total_programs ?? 0} total programs`}
           icon={<Activity size={20} />}
         />
 
         <DashboardCard
           title="Active Batches"
-          value={loading ? "..." : activeBatches}
-          description={`${batches.length} total batches`}
+          value={loading ? "..." : (summary?.active_batches ?? 0)}
+          description={`${summary?.total_batches ?? 0} total batches`}
           icon={<Layers3 size={20} />}
         />
 
         <DashboardCard
           title="Managed Capacity"
-          value={loading ? "..." : totalCapacity}
-          description="Across limited-capacity batches"
+          value={loading ? "..." : (summary?.total_capacity ?? 0)}
+          description="Across active batches"
           icon={<CalendarDays size={20} />}
         />
       </div>
 
-      {/* Main Content */}
-
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        {/* Batch overview */}
-
         <div className="rounded-xl border border-gray-200 bg-white">
           <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
             <div>
@@ -133,7 +88,7 @@ function AdminDashboard() {
             <div className="p-8 text-center text-sm text-gray-500">
               Loading batches...
             </div>
-          ) : activeBatches === 0 ? (
+          ) : batches.length === 0 ? (
             <div className="p-8 text-center">
               <Layers3 size={32} className="mx-auto text-gray-300" />
 
@@ -147,48 +102,36 @@ function AdminDashboard() {
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {batches
-                .filter((batch) => batch.is_active)
-                .slice(0, 5)
-                .map((batch) => {
-                  const program = programs.find(
-                    (program) => program.id === batch.program_id,
-                  );
+              {batches.map((batch) => (
+                <div
+                  key={batch.id}
+                  className="flex items-center justify-between gap-4 px-5 py-4"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-gray-900">
+                      {batch.name}
+                    </p>
 
-                  return (
-                    <div
-                      key={batch.id}
-                      className="flex items-center justify-between gap-4 px-5 py-4"
-                    >
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {batch.name}
-                        </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {batch.program_name}
+                    </p>
+                  </div>
 
-                        <p className="mt-1 text-xs text-gray-500">
-                          {program?.name ?? `Program #${batch.program_id}`}
-                        </p>
-                      </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-medium text-gray-700">
+                      {formatTime(batch.start_time)} -{" "}
+                      {formatTime(batch.end_time)}
+                    </p>
 
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-gray-700">
-                          {formatTime(batch.start_time)}
-                          {" - "}
-                          {formatTime(batch.end_time)}
-                        </p>
-
-                        <p className="mt-1 text-xs text-gray-500">
-                          Capacity: {batch.capacity ?? "Unlimited"}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+                    <p className="mt-1 text-xs text-gray-500">
+                      Capacity: {batch.capacity ?? "Unlimited"}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
-
-        {/* Quick actions */}
 
         <div className="rounded-xl border border-gray-200 bg-white">
           <div className="border-b border-gray-200 px-5 py-4">
@@ -200,7 +143,7 @@ function AdminDashboard() {
           <div className="space-y-3 p-5">
             <QuickAction
               to="/admin/students"
-              title="Manage Student"
+              title="Manage Students"
               description="Create and manage student accounts."
               icon={<UserPlus size={19} />}
             />
@@ -232,17 +175,19 @@ function AdminDashboard() {
   );
 }
 
+type DashboardCardProps = {
+  title: string;
+  value: number | string;
+  description: string;
+  icon: ReactNode;
+};
+
 function DashboardCard({
   title,
   value,
   description,
   icon,
-}: {
-  title: string;
-  value: number | string;
-  description: string;
-  icon: React.ReactNode;
-}) {
+}: DashboardCardProps) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5">
       <div className="flex items-start justify-between">
@@ -262,17 +207,14 @@ function DashboardCard({
   );
 }
 
-function QuickAction({
-  to,
-  title,
-  description,
-  icon,
-}: {
+type QuickActionProps = {
   to: string;
   title: string;
   description: string;
-  icon: React.ReactNode;
-}) {
+  icon: ReactNode;
+};
+
+function QuickAction({ to, title, description, icon }: QuickActionProps) {
   return (
     <Link
       to={to}
@@ -290,9 +232,7 @@ function QuickAction({
 }
 
 function formatTime(value: string) {
-  if (!value) {
-    return "—";
-  }
+  if (!value) return "—";
 
   if (value.includes("T")) {
     return value.split("T")[1].slice(0, 5);

@@ -819,6 +819,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/dashboard/summary": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns aggregate statistics for the admin dashboard.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "dashboard"
+                ],
+                "summary": "Get admin dashboard summary",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.DashboardSummaryResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/enrollments": {
             "post": {
                 "security": [
@@ -1109,7 +1152,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Get fee dues with student, batch and program details for a billing month",
+                "description": "Get paginated monthly fee dues with student, batch and program details",
                 "produces": [
                     "application/json"
                 ],
@@ -1120,20 +1163,50 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Billing month (YYYY-MM-DD)",
+                        "example": "2026-09-01",
+                        "description": "Billing month",
                         "name": "month",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search student, username, email, batch or program",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "pending",
+                            "partial",
+                            "paid",
+                            "cancelled"
+                        ],
+                        "type": "string",
+                        "description": "Fee status",
+                        "name": "status",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.FeeDueWithDetails"
-                            }
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.PaginatedFeeRegister"
                         }
                     },
                     "400": {
@@ -1201,6 +1274,71 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "Forbidden",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {}
+                    }
+                }
+            }
+        },
+        "/fees/{feeDueID}/paid": {
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Mark a monthly fee due as paid",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "fees"
+                ],
+                "summary": "Mark fee as paid",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Fee Due ID",
+                        "name": "feeDueID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Payment notes",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.MarkFeePaidPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.FeeDue"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {}
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {}
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {}
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {}
                     },
                     "500": {
@@ -1809,6 +1947,43 @@ const docTemplate = `{
                 }
             }
         },
+        "/students/profile/dashboard": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get dashboard summary for the currently authenticated student",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "students"
+                ],
+                "summary": "Get student dashboard",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.StudentDashboardSummary"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/cmd_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/students/profile/enrollments": {
             "get": {
                 "security": [
@@ -1854,6 +2029,50 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/cmd_api.ErrorResponse"
                         }
+                    }
+                }
+            }
+        },
+        "/students/profile/fees": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get fee dues for the currently authenticated student",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "fees"
+                ],
+                "summary": "Get my fee dues",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.FeeDueWithDetails"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {}
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {}
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {}
                     }
                 }
             }
@@ -2111,6 +2330,14 @@ const docTemplate = `{
                 }
             }
         },
+        "cmd_api.DashboardSummaryResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.DashboardSummary"
+                }
+            }
+        },
         "cmd_api.EnrollmentResponse": {
             "type": "object",
             "properties": {
@@ -2192,6 +2419,14 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 72,
                     "minLength": 8
+                }
+            }
+        },
+        "cmd_api.MarkFeePaidPayload": {
+            "type": "object",
+            "properties": {
+                "notes": {
+                    "type": "string"
                 }
             }
         },
@@ -2729,6 +2964,64 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_Ayushmangit_adaago_git_backend_internal_store.DashboardBatch": {
+            "type": "object",
+            "properties": {
+                "capacity": {
+                    "type": "integer"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "program_id": {
+                    "type": "integer"
+                },
+                "program_name": {
+                    "type": "string"
+                },
+                "start_time": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_store.DashboardSummary": {
+            "type": "object",
+            "properties": {
+                "active_batches": {
+                    "type": "integer"
+                },
+                "active_programs": {
+                    "type": "integer"
+                },
+                "active_students": {
+                    "type": "integer"
+                },
+                "batches": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.DashboardBatch"
+                    }
+                },
+                "total_batches": {
+                    "type": "integer"
+                },
+                "total_capacity": {
+                    "type": "integer"
+                },
+                "total_programs": {
+                    "type": "integer"
+                },
+                "total_students": {
+                    "type": "integer"
+                }
+            }
+        },
         "github_com_Ayushmangit_adaago_git_backend_internal_store.Enrollment": {
             "type": "object",
             "properties": {
@@ -2770,6 +3063,44 @@ const docTemplate = `{
                 "EnrollmentStatusCompleted",
                 "EnrollmentStatusCancelled"
             ]
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_store.FeeDue": {
+            "type": "object",
+            "properties": {
+                "amount_paise": {
+                    "type": "integer"
+                },
+                "billing_month": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "due_date": {
+                    "type": "string"
+                },
+                "enrollment_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "marked_paid_by": {
+                    "type": "integer"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "paid_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.FeeDueStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
         },
         "github_com_Ayushmangit_adaago_git_backend_internal_store.FeeDueStatus": {
             "type": "string",
@@ -2813,7 +3144,13 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "marked_paid_by": {
+                    "type": "integer"
+                },
                 "notes": {
+                    "type": "string"
+                },
+                "paid_at": {
                     "type": "string"
                 },
                 "program_id": {
@@ -2840,6 +3177,26 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "created": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_store.PaginatedFeeRegister": {
+            "type": "object",
+            "properties": {
+                "fees": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_Ayushmangit_adaago_git_backend_internal_store.FeeDueWithDetails"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
                     "type": "integer"
                 }
             }
@@ -2877,6 +3234,38 @@ const docTemplate = `{
                 "RoleAdmin",
                 "RoleStudent"
             ]
+        },
+        "github_com_Ayushmangit_adaago_git_backend_internal_store.StudentDashboardSummary": {
+            "type": "object",
+            "properties": {
+                "absent": {
+                    "type": "integer"
+                },
+                "active_enrollments": {
+                    "type": "integer"
+                },
+                "attendance_percent": {
+                    "type": "number"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "leave": {
+                    "type": "integer"
+                },
+                "pending_amount_paise": {
+                    "type": "integer"
+                },
+                "pending_fees": {
+                    "type": "integer"
+                },
+                "present": {
+                    "type": "integer"
+                },
+                "student_id": {
+                    "type": "integer"
+                }
+            }
         },
         "github_com_Ayushmangit_adaago_git_backend_internal_store.StudentStatus": {
             "type": "string",

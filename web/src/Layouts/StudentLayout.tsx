@@ -1,4 +1,13 @@
-import { LayoutDashboard, Layers3, LogOut, Menu, User, X } from "lucide-react";
+import {
+  LayoutDashboard,
+  Layers3,
+  LogOut,
+  Menu,
+  User,
+  X,
+  CalendarCheck,
+  IndianRupee,
+} from "lucide-react";
 
 import { useState, type ReactNode } from "react";
 
@@ -40,6 +49,16 @@ function StudentLayout() {
       label: "My Enrollments",
       to: "/student/enrollments",
       icon: <Layers3 size={19} />,
+    },
+    {
+      label: "Attendance",
+      to: "/student/attendance",
+      icon: <CalendarCheck size={19} />,
+    },
+    {
+      label: "My Fees",
+      to: "/student/fees",
+      icon: <IndianRupee size={19} />,
     },
   ];
 

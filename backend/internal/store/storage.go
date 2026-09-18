@@ -165,23 +165,32 @@ type Storage struct {
 		Create(ctx context.Context, fee *FeeDue) error
 		GetByID(ctx context.Context, feeDueID int64) (*FeeDue, error)
 		GetByEnrollmentID(ctx context.Context, enrollmentID int64) ([]FeeDue, error)
+		GetByUserID(ctx context.Context, userID int64) ([]FeeDueWithDetails, error)
 		GetByBillingMonth(ctx context.Context, billingMonth time.Time) ([]FeeDue, error)
 		GenerateMonthlyDues(ctx context.Context, billingMonth, dueDate time.Time) (*GenerateMonthlyDuesResult, error)
 		UpdateByID(ctx context.Context, feeDueID int64, payload UpdateFeeDuePayload) (*FeeDue, error)
 		GetRegister(ctx context.Context, filter FeeRegisterFilter) (*PaginatedFeeRegister, error)
 		MarkPaid(ctx context.Context, feeDueID, adminID int64, notes *string) (*FeeDue, error)
 	}
+	Dashboard interface {
+		GetSummary(ctx context.Context) (*DashboardSummary, error)
+	}
+	StudentDashboard interface {
+		GetSummary(ctx context.Context, userID int64) (*StudentDashboardSummary, error)
+	}
 }
 
 func NewStorage(db *sql.DB) Storage {
 	return Storage{
-		Users:       &UserStore{db},
-		Programs:    &ProgramStore{db},
-		Batches:     &BatchStore{db},
-		Students:    &StudentStore{db},
-		Enrollments: &EnrollmentStore{db},
-		Attendance:  &AttendanceStore{db},
-		FeeDues:     &FeeDueStore{db},
+		Users:            &UserStore{db},
+		Programs:         &ProgramStore{db},
+		Batches:          &BatchStore{db},
+		Students:         &StudentStore{db},
+		Enrollments:      &EnrollmentStore{db},
+		Attendance:       &AttendanceStore{db},
+		FeeDues:          &FeeDueStore{db},
+		Dashboard:        &DashboardStore{db},
+		StudentDashboard: &StudentDashboardStore{db},
 	}
 }
 

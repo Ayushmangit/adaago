@@ -1,19 +1,19 @@
 import {
   Activity,
-  LayoutDashboard,
+  CalendarCheck,
+  IndianRupee,
   Layers3,
+  LayoutDashboard,
   LogOut,
   Menu,
   UserRoundCheck,
   Users,
   X,
-  CalendarCheck,
 } from "lucide-react";
 import type { ReactNode } from "react";
-
 import { useState } from "react";
-
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
+
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { logout } from "../features/auth/authSlice";
 
@@ -26,7 +26,6 @@ type NavItem = {
 
 function AdminLayout() {
   const dispatch = useAppDispatch();
-
   const navigate = useNavigate();
 
   const { user } = useAppSelector((state) => state.auth);
@@ -40,25 +39,21 @@ function AdminLayout() {
       icon: <LayoutDashboard size={19} />,
       end: true,
     },
-
     {
       label: "Students",
       to: "/admin/students",
       icon: <Users size={19} />,
     },
-
     {
       label: "Programs",
       to: "/admin/programs",
       icon: <Activity size={19} />,
     },
-
     {
       label: "Batches",
       to: "/admin/batches",
       icon: <Layers3 size={19} />,
     },
-
     {
       label: "Enrollments",
       to: "/admin/enrollments",
@@ -68,6 +63,11 @@ function AdminLayout() {
       label: "Attendance",
       to: "/admin/attendance",
       icon: <CalendarCheck size={19} />,
+    },
+    {
+      label: "Fees",
+      to: "/admin/fees",
+      icon: <IndianRupee size={19} />,
     },
   ];
 
@@ -85,16 +85,12 @@ function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile overlay */}
-
       {sidebarOpen && (
         <div
           onClick={closeSidebar}
           className="fixed inset-0 z-40 bg-black/40 lg:hidden"
         />
       )}
-
-      {/* Sidebar */}
 
       <aside
         className={`
@@ -104,12 +100,9 @@ function AdminLayout() {
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* Logo */}
-
         <div className="flex h-16 items-center justify-between border-b border-gray-200 px-5">
           <div>
             <h1 className="text-lg font-semibold text-gray-900">AdaaGo</h1>
-
             <p className="text-xs text-gray-500">Admin ERP</p>
           </div>
 
@@ -121,8 +114,6 @@ function AdminLayout() {
             <X size={19} />
           </button>
         </div>
-
-        {/* Navigation */}
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
           {navItems.map((item) => (
@@ -139,17 +130,14 @@ function AdminLayout() {
                       ? "bg-gray-900 text-white"
                       : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                   }
-                  `
+                `
               }
             >
               {item.icon}
-
               <span>{item.label}</span>
             </NavLink>
           ))}
         </nav>
-
-        {/* User + Logout */}
 
         <div className="border-t border-gray-200 p-3">
           {user && (
@@ -181,11 +169,7 @@ function AdminLayout() {
         </div>
       </aside>
 
-      {/* Main area */}
-
       <div className="lg:pl-64">
-        {/* Topbar */}
-
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <button
@@ -217,8 +201,6 @@ function AdminLayout() {
             </div>
           )}
         </header>
-
-        {/* Page content */}
 
         <main className="p-4 sm:p-6 lg:p-8">
           <Outlet />
