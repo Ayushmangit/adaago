@@ -58,7 +58,7 @@ func (app *application) mount() http.Handler {
 		AllowedOrigins: strings.Split(
 			env.GetString(
 				"CORS_ALLOWED_ORIGINS",
-				"http://localhost:5173,http://localhost:4173",
+				"http://localhost:5173,https://project-b26f39d0-3659-4a95-b3c.web.app",
 			),
 			",",
 		),
