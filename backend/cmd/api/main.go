@@ -43,7 +43,7 @@ func main() {
 		},
 		auth: authConfig{
 			token: tokenConfig{
-				secret: env.GetString("JWT_SECRET", "asdhpasdhfgljkdshfjashdf"),
+				secret: env.GetString("SECRET", "asdhpasdhfgljkdshfjashdf"),
 				exp:    time.Hour * 24 * 3, // 3 days,
 				iss:    env.GetString("TOKEN_HOST", "boardGO"),
 				aud:    env.GetString("TOKEN_HOST", "boardGO"),
